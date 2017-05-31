@@ -105,7 +105,6 @@ t_array_size BbST::getRangeMinLoc(const t_array_size &begIdx, const t_array_size
     if (blocksVal2D[endCompIdx * D + 0] < minVal && endCompIdx * k != endIdx) {
        t_array_size minIdx = scanMinIdx(endCompIdx * k, endIdx);
         if (valuesArray[minIdx] < minVal) {
-//            minVal = valuesArray[minIdx];
             result = minIdx;
         }
     }
@@ -125,4 +124,12 @@ t_array_size BbST::scanMinIdx(const t_array_size &begIdx, const t_array_size &en
 void BbST::cleanup() {
     delete[] this->blocksLoc2D;
     delete[] this->blocksVal2D;
+}
+
+size_t BbST::memUsageInBytes() {
+    const t_array_size blocksCount = ((valuesArray.size() - 1 + k - 1)/ k);
+    D = 32 - __builtin_clz(blocksCount);
+    const t_array_size blocksSize = blocksCount * D;
+    const size_t bytes = blocksSize * (sizeof(t_value) + sizeof(t_array_size));
+    return bytes;
 }

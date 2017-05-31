@@ -100,12 +100,14 @@ int main(int argc, char**argv) {
     }
     std::sort(times.begin(), times.end());
     double medianTime = times[times.size()/2];
-    if (verbose) cout << "elapsed time [s] n q sorting noOfThreads K maxTime minTime:\t";
+    if (verbose) cout << "elapsed time [s]; n; q; size [KB]; K; sorting; noOfThreads; max/min time [s]" << std::endl;
     cout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) <<
-        "\t" << (char) sortingAlg << "\t" << noOfThreads << "\t" << K <<
+        "\t" << (solver.memUsageInBytes() / 1000) << "\t" << K <<
+        "\t" << (char) sortingAlg << "\t" << noOfThreads <<
         "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
     fout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) <<
-        "\t" << (char) sortingAlg << "\t" << noOfThreads << "\t" << K <<
+        "\t" << (solver.memUsageInBytes() / 1000) << "\t" << K <<
+        "\t" << (char) sortingAlg << "\t" << noOfThreads <<
         "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
     if (verification) solver.verify();
 

@@ -26,6 +26,8 @@ public:
 
     void verify();
 
+    size_t memUsageInBytes();
+
 private:
     int D = 32;
     //const int K = 512;

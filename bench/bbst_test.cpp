@@ -90,12 +90,12 @@ int main(int argc, char**argv) {
     }
     std::sort(times.begin(), times.end());
     double medianTime = times[times.size()/2];
-    if (verbose) cout << "elapsed time [s] n q k:\t";
+    if (verbose) cout << "elapsed time [s]; n; q; size [KB]; K; max/min time [s]" << std::endl;
     cout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) <<
-        "\t" << "\t" << k <<
+        "\t" << (solver.memUsageInBytes() / 1000) << "\t" << k <<
         "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
     fout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) <<
-        "\t" << k <<
+        "\t" << (solver.memUsageInBytes() / 1000) << "\t" << k << "\t"
         "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
     if (verification) solver.verify();
 

@@ -80,8 +80,7 @@ void BbSTcon::getUniqueBoundsSorted() {
             break;
         case pssparallelsort : pss::parallel_stable_sort(bounds, bounds + queries.size(), [](const t_array_size_2x& a, const t_array_size_2x& b) -> bool { return *((t_array_size*) &a) < *((t_array_size*) &b); });
             break;
-        case ompparallelsort  : __gnu_parallel::sort(bounds, bounds + queries.size(), [](const t_array_size_2x& a, const t_array_size_2x& b) -> bool { return *((t_array_size*) &a) < *((t_array_size*) &b); });
-//        case ompparallelsort  : __gnu_parallel::sort(bounds, bounds + queries.size(), [](const t_array_size_2x& a, const t_array_size_2x& b) -> bool { return *((t_array_size*) &a) < *((t_array_size*) &b); }, __gnu_parallel::multiway_mergesort_tag());
+        case ompparallelsort  : __gnu_parallel::sort(bounds, bounds + queries.size(), [](const t_array_size_2x& a, const t_array_size_2x& b) -> bool { return *((t_array_size*) &a) < *((t_array_size*) &b); }, __gnu_parallel::multiway_mergesort_tag());
             break;
     }
     queries2ContractedIdx = new t_array_size[queries.size()];
@@ -102,16 +101,6 @@ void BbSTcon::getContractedMins() {
         const int *const minPtr = std::min_element(&valuesArray[minIdx], &valuesArray[endIdx + 1]);
         contractedVal[i-1] = *minPtr;
         contractedLoc[i-1] = minPtr - &valuesArray[0];
-
-//        t_value minVal = valuesArray[minIdx];
-//        for (t_array_size idx = minIdx + 1; idx <= endIdx; ++idx)
-//            if (valuesArray[idx] < minVal) {
-//                minVal = valuesArray[idx];
-//                minIdx = idx;
-//            }
-//        contractedVal[i-1] = minVal;
-//        contractedLoc[i-1] = minIdx;
-
     }
 }
 
@@ -176,7 +165,6 @@ t_array_size BbSTcon::getRangeMinLoc(const t_array_size &begContIdx, const t_arr
     if (blocksVal2D[endCompIdx * D + 0] < minVal && endCompIdx * K != endContIdx) {
        t_array_size contMinIdx = scanContractedMinIdx(endCompIdx * K, endContIdx);
         if (contractedVal[contMinIdx] < minVal) {
-//            minVal = contractedVal[contMinIdx];
             result = contractedLoc[contMinIdx];
         }
     }
@@ -200,4 +188,16 @@ void BbSTcon::cleanup() {
     delete[] this->contractedLoc;
     delete[] this->contractedVal;
     delete[] this->queries2ContractedIdx;
+}
+
+size_t BbSTcon::memUsageInBytes() {
+    const size_t boundsBytes = queries.size() * sizeof(t_array_size_2x);
+    const size_t queries2ContractedIdxBytes = queries.size() * sizeof(t_array_size);
+    const size_t contractedBytes = (queries.size() - 1) * (sizeof(t_value) + sizeof(t_array_size));
+    const t_array_size blocksCount = ((queries.size() - 1 + K - 1)/ K);
+    D = 32 - __builtin_clz(blocksCount);
+    const t_array_size blocksSize = blocksCount * D;
+    const size_t blocksBytes = blocksSize * (sizeof(t_value) + sizeof(t_array_size));
+    const size_t bytes = boundsBytes + queries2ContractedIdxBytes + contractedBytes + blocksBytes;
+    return bytes;
 }
