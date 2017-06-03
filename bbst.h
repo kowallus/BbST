@@ -8,7 +8,7 @@ using namespace std;
 
 class BbST {
 public:
-    BbST(vector<t_value> valuesArray, vector<t_array_size> queries, t_array_size *resultLoc, int k);
+    BbST(vector<t_value> valuesArray, vector<t_array_size> queries, t_array_size *resultLoc, int kExp);
 
     void solve();
 
@@ -18,7 +18,7 @@ public:
 
 private:
     t_array_size blocksCount;
-    int k, D;
+    int k, kExp, D;
     
     vector<t_value> valuesArray;
     vector<t_array_size> queries;
