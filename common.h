@@ -4,8 +4,6 @@
 #include <limits.h>
 #include "bits/stdc++.h"
 
-#define K 512
-
 #define MAX_T_VALUE UINT32_MAX
 typedef int32_t t_value;
 

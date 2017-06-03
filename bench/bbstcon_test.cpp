@@ -6,6 +6,7 @@
 #include "../bbstcon.h"
 
 #include <unistd.h>
+#include <omp.h>
 
 int main(int argc, char**argv) {
 
@@ -14,18 +15,27 @@ int main(int argc, char**argv) {
     ChronoStopWatch timer;
     bool verbose = true;
     bool verification = false;
+    int kExp = 9;
     int noOfThreads = 1;
     sortingAlg_enum sortingAlg = kxradixsort;
     int opt; // current option
     int repeats = 1;
 
-    while ((opt = getopt(argc, argv, "t:s:r:vq?")) != -1) {
+    while ((opt = getopt(argc, argv, "k:t:s:r:vq?")) != -1) {
         switch (opt) {
             case 'q':
                 verbose = false;
                 break;
             case 'v':
                 verification = true;
+                break;
+            case 'k':
+                kExp = atoi(optarg);
+                if (kExp < 0 || kExp > 24) {
+                    fprintf(stderr, "%s: Expected 24>=k>=0\n", argv[0]);
+                    fprintf(stderr, "try '%s -?' for more information\n", argv[0]);
+                    exit(EXIT_FAILURE);
+                }
                 break;
             case 't':
                 noOfThreads = atoi(optarg);
@@ -54,9 +64,9 @@ int main(int argc, char**argv) {
                 break;
             case '?':
             default: /* '?' */
-                fprintf(stderr, "Usage: %s [-t noOfThreads] [-s sortingAlgorithm] [-v] [-q] n q\n\n",
+                fprintf(stderr, "Usage: %s [-k block size power of 2 exponent] [-t noOfThreads] [-s sortingAlgorithm] [-v] [-q] n q\n\n",
                         argv[0]);
-                fprintf(stderr, "-t [noOfThreads>=1] \n-s [q-quicksort;s-stdsort;r-kxradixsort;i-psspparallelsort;p-ompparallelsort;\n-v verify results (extremely slow)\n-q quiet output (only parameters)\n\n");
+                fprintf(stderr, "-k [24>=k>=0] \n-t [noOfThreads>=1] \n-s [q-quicksort;s-stdsort;r-kxradixsort;i-psspparallelsort;p-ompparallelsort;\n-v verify results (extremely slow)\n-q quiet output (only parameters)\n\n");
                 exit(EXIT_FAILURE);
         }
     }
@@ -85,9 +95,10 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
-    BbSTcon solver(valuesArray, queries, resultLoc, sortingAlg, noOfThreads);
+    BbSTcon solver(valuesArray, queries, resultLoc, sortingAlg, kExp);
     if (verbose) cout << "Solving... ";
 
+    omp_set_num_threads(noOfThreads);
     vector<double> times;
     for(int i = 0; i < repeats; i++) {
         if (i > 0) {
@@ -100,13 +111,13 @@ int main(int argc, char**argv) {
     }
     std::sort(times.begin(), times.end());
     double medianTime = times[times.size()/2];
-    if (verbose) cout << "elapsed time [s]; n; q; size [KB]; K; sorting; noOfThreads; max/min time [s]" << std::endl;
+    if (verbose) cout << "elapsed time [s]; n; q; size [KB]; k; sorting; noOfThreads; max/min time [s]" << std::endl;
     cout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) <<
-        "\t" << (solver.memUsageInBytes() / 1000) << "\t" << K <<
+        "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) <<
         "\t" << (char) sortingAlg << "\t" << noOfThreads <<
         "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
     fout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) <<
-        "\t" << (solver.memUsageInBytes() / 1000) << "\t" << K <<
+        "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) <<
         "\t" << (char) sortingAlg << "\t" << noOfThreads <<
         "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
     if (verification) solver.verify();

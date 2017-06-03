@@ -11,18 +11,20 @@
 BbSTcon::BbSTcon(std::vector<t_value, std::allocator<t_value>> &valuesArray,
                      std::vector<t_array_size, std::allocator<t_array_size>> &queries,
                      t_array_size* resultLoc,
-                     sortingAlg_enum sortingAlg, int noOfThreads) {
+                     sortingAlg_enum sortingAlg, int kExp) {
     this->valuesArray = valuesArray;
     this->queries = queries;
     this->resultLoc = resultLoc;
     this->sortingAlg = sortingAlg;
-    omp_set_num_threads(noOfThreads);
+    this->kExp = kExp;
+    this->k = 1 << kExp;
 }
 
 void BbSTcon::solve() {
     getUniqueBoundsSorted();
     getContractedMins();
     getBlocksMins();
+    #pragma omp parallel for
     for(int i = 0; i < queries.size(); i = i + 2) {
         if (queries[i] == queries[i+1]) {
             this->resultLoc[i/2] = queries[i];
@@ -105,38 +107,38 @@ void BbSTcon::getContractedMins() {
 }
 
 void BbSTcon::getBlocksMins() {
-    const t_array_size blocksCount = ((queries.size() - 1 + K - 1)/ K);
+    this->blocksCount = (queries.size() - 1 + k - 1) >> kExp;
     D = 32 - __builtin_clz(blocksCount);
     const t_array_size blocksSize = blocksCount * D;
     blocksVal2D = new t_value[blocksSize];
     blocksLoc2D = new t_array_size[blocksSize];
-    t_array_size i = 0;
-    t_value* ptr;
-    t_value* endPtr = contractedVal + (queries.size() - 1);
-    for(ptr = contractedVal; ptr < endPtr - K; ptr = ptr + K) {
-        auto minPtr = std::min_element(ptr, ptr + K);
-        blocksVal2D[i * D] = *minPtr;
-        blocksLoc2D[i++ * D] = contractedLoc[minPtr - contractedVal];
+    #pragma omp parallel for
+    for (t_array_size i = 0; i < blocksCount - 1; i++) {
+        auto minPtr = std::min_element(&contractedVal[i << kExp], &contractedVal[(i + 1) << kExp]);
+        blocksVal2D[i] = *minPtr;
+        blocksLoc2D[i] = contractedLoc[minPtr - contractedVal];
     }
-    auto minPtr = std::min_element(ptr, endPtr);
-    blocksVal2D[i * D] = *minPtr;
-    blocksLoc2D[i * D] = contractedLoc[minPtr - contractedVal];
+    auto minPtr = std::min_element(&contractedVal[(blocksCount - 1) << kExp], &contractedVal[queries.size() - 1]);
+    blocksVal2D[blocksCount - 1] = *minPtr;
+    blocksLoc2D[blocksCount - 1] = contractedLoc[minPtr - contractedVal];
     for(t_array_size e = 1, step = 1; e < D; ++e, step <<= 1) {
-        for (i = 0; i < blocksCount; i++) {
+        for (t_array_size i = 0; i < blocksCount; i++) {
             t_array_size minIdx = i;
-            if (i + step < blocksCount && blocksVal2D[(i + step) * D + e - 1] < blocksVal2D[i * D + e - 1]) {
+            const t_array_size e0offset = (e - 1) * blocksCount;
+            if (i + step < blocksCount && blocksVal2D[i + step + e0offset] < blocksVal2D[i + e0offset]) {
                 minIdx = i + step;
             }
-            blocksVal2D[i * D + e] = blocksVal2D[minIdx * D + e - 1];
-            blocksLoc2D[i * D + e] = blocksLoc2D[minIdx * D + e - 1];
+            const t_array_size e1offset = e * blocksCount;
+            blocksVal2D[i + e1offset] = blocksVal2D[minIdx + e0offset];
+            blocksLoc2D[i + e1offset] = blocksLoc2D[minIdx + e0offset];
         }
     }
 }
 
 t_array_size BbSTcon::getRangeMinLoc(const t_array_size &begContIdx, const t_array_size &endContIdx) {
     t_array_size result = -1;
-    const t_array_size begCompIdx = begContIdx / K;
-    const t_array_size endCompIdx = endContIdx / K;
+    const t_array_size begCompIdx = begContIdx >> kExp;
+    const t_array_size endCompIdx = endContIdx >> kExp;
     if (endCompIdx - begCompIdx <= 1) {
         return contractedLoc[scanContractedMinIdx(begContIdx, endContIdx)];
     }
@@ -144,26 +146,26 @@ t_array_size BbSTcon::getRangeMinLoc(const t_array_size &begContIdx, const t_arr
     t_array_size kBlockCount = endCompIdx - begCompIdx - 1;
     t_array_size e = 31 - __builtin_clz(kBlockCount);
     t_array_size step = 1 << e;
-    t_value minVal = blocksVal2D[(begCompIdx + 1) * D + e];
-    result = blocksLoc2D[(begCompIdx + 1) * D + e];
+    t_value minVal = blocksVal2D[(begCompIdx + 1) + e * blocksCount];
+    result = blocksLoc2D[(begCompIdx + 1) + e * blocksCount];
     t_array_size endShiftCompIdx = endCompIdx - step;
     if (endShiftCompIdx != begCompIdx + 1) {
-        t_value temp = blocksVal2D[(endShiftCompIdx) * D + e];
+        t_value temp = blocksVal2D[(endShiftCompIdx) + e * blocksCount];
         if (temp < minVal) {
             minVal = temp;
-            result = blocksLoc2D[(endShiftCompIdx) * D + e];
+            result = blocksLoc2D[(endShiftCompIdx) + e * blocksCount];
         }
     }
 
-    if (blocksVal2D[begCompIdx * D + 0] <= minVal && begContIdx != (begCompIdx + 1) * K) {
-        t_array_size contMinIdx = scanContractedMinIdx(begContIdx, (begCompIdx + 1) * K);
+    if (blocksVal2D[begCompIdx] <= minVal && begContIdx != (begCompIdx + 1) << kExp) {
+        t_array_size contMinIdx = scanContractedMinIdx(begContIdx, (begCompIdx + 1) << kExp);
         if (contractedVal[contMinIdx] <= minVal) {
             minVal = contractedVal[contMinIdx];
             result = contractedLoc[contMinIdx];
         }
     }
-    if (blocksVal2D[endCompIdx * D + 0] < minVal && endCompIdx * K != endContIdx) {
-       t_array_size contMinIdx = scanContractedMinIdx(endCompIdx * K, endContIdx);
+    if (blocksVal2D[endCompIdx] < minVal && endCompIdx << kExp != endContIdx) {
+       t_array_size contMinIdx = scanContractedMinIdx(endCompIdx << kExp, endContIdx);
         if (contractedVal[contMinIdx] < minVal) {
             result = contractedLoc[contMinIdx];
         }
@@ -194,7 +196,7 @@ size_t BbSTcon::memUsageInBytes() {
     const size_t boundsBytes = queries.size() * sizeof(t_array_size_2x);
     const size_t queries2ContractedIdxBytes = queries.size() * sizeof(t_array_size);
     const size_t contractedBytes = (queries.size() - 1) * (sizeof(t_value) + sizeof(t_array_size));
-    const t_array_size blocksCount = ((queries.size() - 1 + K - 1)/ K);
+    const t_array_size blocksCount = ((queries.size() - 1 + k - 1)/ k);
     D = 32 - __builtin_clz(blocksCount);
     const t_array_size blocksSize = blocksCount * D;
     const size_t blocksBytes = blocksSize * (sizeof(t_value) + sizeof(t_array_size));
