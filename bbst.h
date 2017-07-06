@@ -8,7 +8,7 @@ using namespace std;
 
 class BbST {
 public:
-    BbST(vector<t_value> valuesArray, vector<t_array_size> queries, t_array_size *resultLoc, int k);
+    BbST(vector<t_value> valuesArray, vector<t_array_size> queries, t_array_size *resultLoc, int kExp);
 
     void solve();
 
@@ -17,8 +17,8 @@ public:
     size_t memUsageInBytes();
 
 private:
-    int D = 32;
-    int k;
+    t_array_size blocksCount;
+    int k, kExp, D;
     
     vector<t_value> valuesArray;
     vector<t_array_size> queries;
@@ -30,7 +30,8 @@ private:
     t_value* blocksVal2D;
     t_array_size*  blocksLoc2D;
 
-    void getBlocksMins();
+    void getBlocksMinsBase();
+    void getBlocksSparseTable();
     t_array_size getRangeMinLoc(const t_array_size &begIdx, const t_array_size &endIdx);
     t_array_size scanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx);
 

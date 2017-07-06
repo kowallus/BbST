@@ -20,7 +20,7 @@ public:
     BbSTcon(std::vector<t_value , std::allocator<t_value>> &valuesArray,
               std::vector<t_array_size, std::allocator<t_array_size>> &queries,
               t_array_size* resultLoc,
-              sortingAlg_enum sortingAlg, int noOfThreads);
+              sortingAlg_enum sortingAlg, int kExp);
 
     void solve();
 
@@ -29,8 +29,8 @@ public:
     size_t memUsageInBytes();
 
 private:
-    int D = 32;
-    //const int K = 512;
+    t_array_size blocksCount;
+    int k, kExp, D;
     sortingAlg_enum sortingAlg;
 
     vector<t_value> valuesArray;
