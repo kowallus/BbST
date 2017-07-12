@@ -28,11 +28,19 @@ void getPermutationOfRange(vector<t_value> &data) {
     }
 }
 
-void getRandomRangeQueries(vector<pair<t_array_size, t_array_size>> &queries, t_value array_size) {
+void getRandomRangeQueries(vector<pair<t_array_size, t_array_size>> &queries, t_array_size array_size, t_array_size max_range_size) {
     randgenerator.seed(randgenerator.default_seed);
     for(long long int i = 0; i < queries.size(); i++) {
-        const unsigned int randA = randgenerator() % (array_size);
-        const unsigned int randB = randgenerator() % (array_size);
+        const t_array_size randA = randgenerator() % (array_size);
+        t_array_size maxB = randA + max_range_size;
+        if (maxB >= array_size) {
+            maxB = array_size - 1;
+        }
+        t_array_size minB = 0;
+        if (max_range_size < randA) {
+            minB = randA - max_range_size;
+        }
+        const t_array_size randB = minB + randgenerator() % (maxB - minB + 1);
         if (randA < randB) {
             queries[i].first =  randA;
             queries[i].second = randB;

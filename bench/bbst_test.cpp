@@ -19,8 +19,9 @@ int main(int argc, char**argv) {
     int noOfThreads = 1;
     int opt; // current option
     int repeats = 1;
+    t_array_size max_range = 0;
 
-    while ((opt = getopt(argc, argv, "k:t:r:vq?")) != -1) {
+    while ((opt = getopt(argc, argv, "k:t:r:m:vq?")) != -1) {
         switch (opt) {
             case 'q':
                 verbose = false;
@@ -52,6 +53,14 @@ int main(int argc, char**argv) {
                     exit(EXIT_FAILURE);
                 }
                 break;
+            case 'm':
+                max_range = atoi(optarg);
+                if (max_range <= 0) {
+                    fprintf(stderr, "%s: Expected maximum size of a range>=1\n", argv[0]);
+                    fprintf(stderr, "try '%s -?' for more information\n", argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+                break;
             case '?':
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-k block size power of 2 exponent] [-t noOfThreads] [-v] [-q] n q\n\n",
@@ -70,6 +79,9 @@ int main(int argc, char**argv) {
 
     t_array_size n = atoi(argv[optind++]);
     t_array_size q = atoi(argv[optind]);
+    if (max_range == 0) {
+        max_range = n;
+    }
 
     if (verbose) cout << "Generation of values..." << std::endl;
     vector<t_value> valuesArray(n);
@@ -81,7 +93,9 @@ int main(int argc, char**argv) {
 
     if (verbose) cout << "Generation of queries..." << std::endl;
     vector<pair<t_array_size, t_array_size>> queriesPairs(q);
-    getRandomRangeQueries(queriesPairs, n);
+
+    getRandomRangeQueries(queriesPairs, n, max_range);
+
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
@@ -101,11 +115,11 @@ int main(int argc, char**argv) {
     }
     std::sort(times.begin(), times.end());
     double medianTime = times[times.size()/2];
-    if (verbose) cout << "elapsed time [s]; n; q; size [KB]; k; noOfThreads; max/min time [s]" << std::endl;
-    cout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) <<
-        "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads <<
-        "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
-    fout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) <<
+    if (verbose) cout << "elapsed time [s]; n; q; m; size [KB]; k; noOfThreads; max/min time [s]" << std::endl;
+    cout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) << "\t" << max_range
+            << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads
+            << "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
+    fout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) << "\t" << max_range <<
         "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads <<
         "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
     if (verification) solver.verify();
