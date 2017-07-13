@@ -139,35 +139,49 @@ t_array_size BbSTcon::getRangeMinLoc(const t_array_size &begContIdx, const t_arr
     t_array_size result = -1;
     const t_array_size begCompIdx = begContIdx >> kExp;
     const t_array_size endCompIdx = endContIdx >> kExp;
-    if (endCompIdx - begCompIdx <= 1) {
+    const t_array_size firstBlockMinLoc = blocksLoc2D[begCompIdx];
+    if (endCompIdx == begCompIdx) {
+        if (contractedLoc[begContIdx] <= firstBlockMinLoc && firstBlockMinLoc < contractedLoc[endContIdx])
+            return firstBlockMinLoc;
         return contractedLoc[scanContractedMinIdx(begContIdx, endContIdx)];
     }
-
-    t_array_size kBlockCount = endCompIdx - begCompIdx - 1;
-    t_array_size e = 31 - __builtin_clz(kBlockCount);
-    t_array_size step = 1 << e;
-    t_value minVal = blocksVal2D[(begCompIdx + 1) + e * blocksCount];
-    result = blocksLoc2D[(begCompIdx + 1) + e * blocksCount];
-    t_array_size endShiftCompIdx = endCompIdx - step;
-    if (endShiftCompIdx != begCompIdx + 1) {
-        t_value temp = blocksVal2D[(endShiftCompIdx) + e * blocksCount];
-        if (temp < minVal) {
-            minVal = temp;
-            result = blocksLoc2D[(endShiftCompIdx) + e * blocksCount];
+    t_value minVal = MAX_T_VALUE;
+    if (endCompIdx - begCompIdx > 1) {
+        t_array_size kBlockCount = endCompIdx - begCompIdx - 1;
+        t_array_size e = 31 - __builtin_clz(kBlockCount);
+        t_array_size step = 1 << e;
+        minVal = blocksVal2D[(begCompIdx + 1) + e * blocksCount];
+        result = blocksLoc2D[(begCompIdx + 1) + e * blocksCount];
+        t_array_size endShiftCompIdx = endCompIdx - step;
+        if (endShiftCompIdx != begCompIdx + 1) {
+            t_value temp = blocksVal2D[(endShiftCompIdx) + e * blocksCount];
+            if (temp < minVal) {
+                minVal = temp;
+                result = blocksLoc2D[(endShiftCompIdx) + e * blocksCount];
+            }
         }
     }
-
     if (blocksVal2D[begCompIdx] <= minVal && begContIdx != (begCompIdx + 1) << kExp) {
-        t_array_size contMinIdx = scanContractedMinIdx(begContIdx, (begCompIdx + 1) << kExp);
-        if (contractedVal[contMinIdx] <= minVal) {
-            minVal = contractedVal[contMinIdx];
-            result = contractedLoc[contMinIdx];
+        if (firstBlockMinLoc >= contractedLoc[begContIdx]) {
+            minVal = blocksVal2D[begCompIdx];
+            result = firstBlockMinLoc;
+        } else {
+            t_array_size contMinIdx = scanContractedMinIdx(begContIdx, (begCompIdx + 1) << kExp);
+            if (contractedVal[contMinIdx] <= minVal) {
+                minVal = contractedVal[contMinIdx];
+                result = contractedLoc[contMinIdx];
+            }
         }
     }
     if (blocksVal2D[endCompIdx] < minVal && endCompIdx << kExp != endContIdx) {
-       t_array_size contMinIdx = scanContractedMinIdx(endCompIdx << kExp, endContIdx);
-        if (contractedVal[contMinIdx] < minVal) {
-            result = contractedLoc[contMinIdx];
+        t_array_size lastBlockMinLoc = blocksLoc2D[endCompIdx];
+        if (lastBlockMinLoc < contractedLoc[endContIdx]) {
+            result = lastBlockMinLoc;
+        } else {
+            t_array_size contMinIdx = scanContractedMinIdx(endCompIdx << kExp, endContIdx);
+            if (contractedVal[contMinIdx] < minVal) {
+                result = contractedLoc[contMinIdx];
+            }
         }
     }
     return result;
