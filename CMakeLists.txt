@@ -22,9 +22,9 @@ set(BBSTCON_SOURCE_FILES
 
 set(BBST_SOURCE_FILES
         ${COMMON_SOURCE_FILES}
-        bench/bbst_test.cpp
         bbst.cpp
         bbst.h)
 
 add_executable(bbstcon ${BBSTCON_SOURCE_FILES})
-add_executable(bbst ${BBST_SOURCE_FILES})
+add_executable(bbst bench/bbst_test.cpp ${BBST_SOURCE_FILES})
+add_executable(bbst_nb bench/bbst_nb_test.cpp ${BBST_SOURCE_FILES})

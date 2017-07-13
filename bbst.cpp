@@ -12,6 +12,10 @@ BbST::BbST(vector<t_value> valuesArray, vector<t_array_size> queries, t_array_si
     this->k = 1 << kExp;
 }
 
+BbST::~BbST() {
+    if (batchMode) cleanup();
+}
+
 void BbST::solve() {
     getBlocksMinsBase();
     getBlocksSparseTable();
@@ -25,6 +29,28 @@ void BbST::solve() {
     }
     cleanup();
 /**/
+}
+
+BbST::BbST(vector<t_value> valuesArray, t_array_size *resultLoc, int kExp) {
+    this->valuesArray = valuesArray;
+    this->resultLoc = resultLoc;
+    this->kExp = kExp;
+    this->k = 1 << kExp;
+    this->batchMode = true;
+    getBlocksMinsBase();
+    getBlocksSparseTable();
+}
+
+void BbST::solve(vector<t_array_size> queries) {
+    this->queries = queries;
+    #pragma omp parallel for
+    for (int i = 0; i < queries.size(); i = i + 2) {
+        if (queries[i] == queries[i + 1]) {
+            this->resultLoc[i / 2] = queries[i];
+            continue;
+        }
+        this->resultLoc[i / 2] = getRangeMinLoc(queries[i], queries[i + 1]);
+    }
 }
 
 void BbST::verify() {
@@ -154,3 +180,4 @@ size_t BbST::memUsageInBytes() {
     const size_t bytes = blocksSize * (sizeof(t_value) + sizeof(t_array_size));
     return bytes;
 }
+
