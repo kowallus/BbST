@@ -115,7 +115,7 @@ int main(int argc, char**argv) {
         times.push_back(timer.getElapsedTime());
     }
     std::sort(times.begin(), times.end());
-    double nanoqcoef = 1000000000 / q;
+    double nanoqcoef = 1000000000.0 / q;
     double maxQueryTime = times[repeats - 1] * nanoqcoef ;
     double medianQueryTime = times[times.size()/2] * nanoqcoef;
     double minQueryTime = times[0] * nanoqcoef;
