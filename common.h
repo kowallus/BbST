@@ -5,6 +5,7 @@
 #include "bits/stdc++.h"
 
 #define RANDOM_DATA
+// #define WORSE_CASE
 
 #define MAX_T_VALUE INT32_MAX
 typedef int32_t t_value;

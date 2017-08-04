@@ -4,7 +4,13 @@
 #include "bbst.h"
 #include <omp.h>
 
+#ifdef MINI_BLOCKS
+BbST::BbST(vector<t_value> valuesArray, vector<t_array_size> queries, t_array_size *resultLoc, int kExp, int miniKExp) {
+    this->miniKExp = miniKExp;
+    this->miniK = 1 << miniKExp;
+#else
 BbST::BbST(vector<t_value> valuesArray, vector<t_array_size> queries, t_array_size *resultLoc, int kExp) {
+#endif
     this->valuesArray = valuesArray;
     this->queries = queries;
     this->resultLoc = resultLoc;
@@ -31,7 +37,13 @@ void BbST::solve() {
 /**/
 }
 
+#ifdef MINI_BLOCKS
+BbST::BbST(vector<t_value> valuesArray, t_array_size *resultLoc, int kExp, int miniKExp) {
+    this->miniKExp = miniKExp;
+    this->miniK = 1 << miniKExp;
+#else
 BbST::BbST(vector<t_value> valuesArray, t_array_size *resultLoc, int kExp) {
+#endif
     this->valuesArray = valuesArray;
     this->resultLoc = resultLoc;
     this->kExp = kExp;
@@ -75,6 +87,11 @@ void BbST::verify() {
 }
 
 void BbST::getBlocksMinsBase() {
+#ifdef MINI_BLOCKS
+    this->miniBlocksCount = (valuesArray.size() + miniK - 1) >> miniKExp;
+    this->miniBlocksLoc = new uint8_t[miniBlocksCount];
+    this->miniBlocksInBlock = k / miniK;
+#endif
     this->blocksCount = (valuesArray.size() + k - 1) >> kExp;
     this->D = 32 - __builtin_clz(blocksCount);
     const t_array_size blocksSize = blocksCount * D;
@@ -82,6 +99,13 @@ void BbST::getBlocksMinsBase() {
     blocksLoc2D = new t_array_size[blocksSize];
     #pragma omp parallel for
     for (t_array_size i = 0; i < blocksCount - 1; i++) {
+#ifdef MINI_BLOCKS
+        t_array_size miniI = i << (kExp - miniKExp);
+        for (t_array_size j = 0; j < miniBlocksInBlock; j++, miniI++) {
+            auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[(miniI + 1) << miniKExp]);
+            miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
+        }
+#endif
         auto minPtr = std::min_element(&valuesArray[i << kExp], &valuesArray[(i + 1) << kExp]);
         blocksVal2D[i] = *minPtr;
         blocksLoc2D[i] = minPtr - &valuesArray[0];
@@ -132,6 +156,7 @@ t_array_size BbST::getRangeMinLoc(const t_array_size &begIdx, const t_array_size
             }
         }
     }
+#ifndef WORSE_CASE
     if (blocksVal2D[begCompIdx] <= minVal && begIdx != (begCompIdx + 1) << kExp) {
         if (firstBlockMinLoc >= begIdx) {
             minVal = blocksVal2D[begCompIdx];
@@ -155,10 +180,21 @@ t_array_size BbST::getRangeMinLoc(const t_array_size &begIdx, const t_array_size
             }
         }
     }
+#else
+    t_array_size minIdx = scanMinIdx(begIdx, ((begCompIdx + 1) << kExp) - 1);
+    if (valuesArray[minIdx] <= minVal) {
+        minVal = valuesArray[minIdx];
+        result = minIdx;
+    }
+    minIdx = scanMinIdx(endCompIdx << kExp, endIdx);
+    if (valuesArray[minIdx] < minVal) {
+        result = minIdx;
+    }
+#endif
     return result;
 }
 
-t_array_size BbST::scanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
+inline t_array_size BbST::rawScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
     t_array_size minValIdx = begIdx;
     for(t_array_size i = begIdx + 1; i <= endIdx; i++) {
         if (valuesArray[i] < valuesArray[minValIdx]) {
@@ -168,16 +204,91 @@ t_array_size BbST::scanMinIdx(const t_array_size &begIdx, const t_array_size &en
     return minValIdx;
 }
 
+inline t_array_size BbST::miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
+    t_array_size result = -1;
+    const t_array_size begMiniIdx = begIdx >> miniKExp;
+    const t_array_size endMiniIdx = endIdx >> miniKExp;
+    const t_array_size firstMiniBlockMinLoc = (begMiniIdx << miniKExp) + miniBlocksLoc[begMiniIdx];
+    if (endMiniIdx == begMiniIdx) {
+        if (begIdx <= firstMiniBlockMinLoc && firstMiniBlockMinLoc <= endIdx)
+            return firstMiniBlockMinLoc;
+        return rawScanMinIdx(begIdx, endIdx);
+    }
+    t_value minVal = MAX_T_VALUE;
+    if (endMiniIdx - begMiniIdx > 1) {
+        for(t_array_size i = begMiniIdx + 1; i <= endMiniIdx - 1; i++) {
+            t_array_size tempLoc = (i << miniKExp) + miniBlocksLoc[i];
+            t_value tempVal = valuesArray[tempLoc];
+            if (tempVal < minVal) {
+                minVal = tempVal;
+                result = tempLoc;
+            }
+        }
+    }
+#ifndef WORSE_CASE
+    t_value tempVal = valuesArray[firstMiniBlockMinLoc];
+    if (tempVal <= minVal && begIdx != (begMiniIdx + 1) << miniKExp) {
+        if (firstMiniBlockMinLoc >= begIdx) {
+            minVal = tempVal;
+            result = firstMiniBlockMinLoc;
+        } else {
+            t_array_size minIdx = rawScanMinIdx(begIdx, ((begMiniIdx + 1) << miniKExp) - 1);
+            if (valuesArray[minIdx] <= minVal) {
+                minVal = valuesArray[minIdx];
+                result = minIdx;
+            }
+        }
+    }
+    t_array_size lastBlockMinLoc = (endMiniIdx << miniKExp) + miniBlocksLoc[endMiniIdx];
+    tempVal = valuesArray[lastBlockMinLoc];
+    if (tempVal < minVal) {
+        if (lastBlockMinLoc <= endIdx) {
+            result = lastBlockMinLoc;
+        } else {
+            t_array_size minIdx = rawScanMinIdx(endMiniIdx << miniKExp, endIdx);
+            if (valuesArray[minIdx] < minVal) {
+                result = minIdx;
+            }
+        }
+    }
+#else
+    t_array_size minIdx = rawScanMinIdx(begIdx, ((begMiniIdx + 1) << miniKExp) - 1);
+    if (valuesArray[minIdx] <= minVal) {
+        minVal = valuesArray[minIdx];
+        result = minIdx;
+    }
+    minIdx = rawScanMinIdx(endMiniIdx << miniKExp, endIdx);
+    if (valuesArray[minIdx] < minVal) {
+        result = minIdx;
+    }
+#endif
+    return result;
+}
+
+t_array_size BbST::scanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
+#ifdef MINI_BLOCKS
+    return miniScanMinIdx(begIdx, endIdx);
+#else
+    return rawScanMinIdx(begIdx, endIdx);
+#endif
+}
+
 void BbST::cleanup() {
     delete[] this->blocksLoc2D;
     delete[] this->blocksVal2D;
+#ifdef MINI_BLOCKS
+    delete[] this->miniBlocksLoc;
+#endif
 }
 
 size_t BbST::memUsageInBytes() {
     const t_array_size blocksCount = ((valuesArray.size() - 1 + k - 1) >> kExp);
     D = 32 - __builtin_clz(blocksCount);
     const t_array_size blocksSize = blocksCount * D;
-    const size_t bytes = blocksSize * (sizeof(t_value) + sizeof(t_array_size));
+    size_t bytes = blocksSize * (sizeof(t_value) + sizeof(t_array_size));
+#ifdef MINI_BLOCKS
+    bytes += miniBlocksCount;
+#endif
     return bytes;
 }
 
