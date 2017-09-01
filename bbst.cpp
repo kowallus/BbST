@@ -49,6 +49,9 @@ BbST::BbST(vector<t_value> valuesArray, t_array_size *resultLoc, int kExp) {
     this->kExp = kExp;
     this->k = 1 << kExp;
     this->batchMode = true;
+}
+
+void BbST::prepare() {
     getBlocksMinsBase();
     getBlocksSparseTable();
 }
@@ -110,6 +113,15 @@ void BbST::getBlocksMinsBase() {
         blocksVal2D[i] = *minPtr;
         blocksLoc2D[i] = minPtr - &valuesArray[0];
     }
+#ifdef MINI_BLOCKS
+    t_array_size miniI = (blocksCount - 1) << (kExp - miniKExp);
+    for (; ((miniI + 1) << miniKExp) < valuesArray.size(); miniI++) {
+        auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[(miniI + 1) << miniKExp]);
+        miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
+    }
+    auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &(*valuesArray.end()));
+    miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
+#endif
     auto minPtr = std::min_element(&valuesArray[(blocksCount - 1) << kExp], &(*valuesArray.end()));
     blocksVal2D[blocksCount - 1] = *minPtr;
     blocksLoc2D[blocksCount - 1] = minPtr - &valuesArray[0];

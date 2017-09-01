@@ -99,8 +99,9 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
-    timer.startTimer();
     BbST solver(valuesArray, resultLoc, kExp);
+    timer.startTimer();
+    solver.prepare();
     timer.stopTimer();
     double buildTime = timer.getElapsedTime();
     if (verbose) cout << "Solving... ";

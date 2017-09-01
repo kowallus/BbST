@@ -31,16 +31,16 @@ int main(int argc, char**argv) {
                 break;
             case 'k':
                 kExp = atoi(optarg);
-                if (kExp < 0 || kExp > 24) {
-                    fprintf(stderr, "%s: Expected 24>=k>=0\n", argv[0]);
+                if (kExp < 1 || kExp > 24) {
+                    fprintf(stderr, "%s: Expected 24>=k>=1\n", argv[0]);
                     fprintf(stderr, "try '%s -?' for more information\n", argv[0]);
                     exit(EXIT_FAILURE);
                 }
                 break;
             case 'l':
                 miniKExp = atoi(optarg);
-                if (miniKExp < 0 || miniKExp > 12) {
-                    fprintf(stderr, "%s: Expected 12>=l>=0\n", argv[0]);
+                if (miniKExp < 0 || miniKExp > 8) {
+                    fprintf(stderr, "%s: Expected 8>=l>=0\n", argv[0]);
                     fprintf(stderr, "try '%s -?' for more information\n", argv[0]);
                     exit(EXIT_FAILURE);
                 }
@@ -73,7 +73,7 @@ int main(int argc, char**argv) {
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-k block size power of 2 exponent] [-l miniblock size power of 2 exponent] [-t noOfThreads] [-v] [-q] n q\n\n",
                         argv[0]);
-                fprintf(stderr, "-k [24>=k>=0] \n-t [noOfThreads>=1] \n-v verify results (extremely slow)\n-q quiet output (only parameters)\n\n");
+                fprintf(stderr, "-k [24>=k>=1] \n-l [8>=l>=0] \n-t [noOfThreads>=1] \n-v verify results (extremely slow)\n-q quiet output (only parameters)\n\n");
                 exit(EXIT_FAILURE);
         }
     }
@@ -113,8 +113,9 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
-    timer.startTimer();
     BbST solver(valuesArray, resultLoc, kExp, miniKExp);
+    timer.startTimer();
+    solver.prepare();
     timer.stopTimer();
     double buildTime = timer.getElapsedTime();
     if (verbose) cout << "Solving... ";

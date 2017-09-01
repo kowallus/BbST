@@ -99,7 +99,12 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
+    timer.startTimer();
     BbST solver(valuesArray, queries, resultLoc, kExp);
+    timer.stopTimer();
+    double buildTime = timer.getElapsedTime();
+    cout << buildTime << endl;
+
     if (verbose) cout << "Solving... ";
 
     omp_set_num_threads(noOfThreads);

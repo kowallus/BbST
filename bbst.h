@@ -16,7 +16,8 @@ public:
 #else 
     BbST(vector<t_value> valuesArray, t_array_size *resultLoc, int kExp);
     BbST(vector<t_value> valuesArray, vector<t_array_size> queries, t_array_size *resultLoc, int kExp);
-#endif  
+#endif
+    void prepare();
     void solve(vector<t_array_size> queries);
 
     void verify();
