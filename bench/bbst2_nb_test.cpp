@@ -31,8 +31,8 @@ int main(int argc, char**argv) {
                 break;
             case 'k':
                 kExp = atoi(optarg);
-                if (kExp < 1 || kExp > 24) {
-                    fprintf(stderr, "%s: Expected 24>=k>=1\n", argv[0]);
+                if (kExp < 1 || kExp > 16) {
+                    fprintf(stderr, "%s: Expected 16>=k>=1\n", argv[0]);
                     fprintf(stderr, "try '%s -?' for more information\n", argv[0]);
                     exit(EXIT_FAILURE);
                 }
@@ -85,12 +85,12 @@ int main(int argc, char**argv) {
         exit(EXIT_FAILURE);
     }
 
-    if (kExp <= miniKExp) {
-        fprintf(stderr, "%s: k block size must be greater then miniblock size (k=%d, l=%d) \n", argv[0], kExp, miniKExp);
+    if (kExp <= miniKExp || kExp >= miniKExp + 8) {
+        fprintf(stderr, "%s: k block size must be greater then miniblock size but not more then 8 (k=%d, l=%d) \n", argv[0], kExp, miniKExp);
 
         exit(EXIT_FAILURE);
     }
-    
+
     t_array_size n = atoi(argv[optind++]);
     t_array_size q = atoi(argv[optind]);
     if (max_range == 0) {

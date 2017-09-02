@@ -93,7 +93,7 @@ void BbST::getBlocksMinsBase() {
 #ifdef MINI_BLOCKS
     this->miniBlocksCount = (valuesArray.size() + miniK - 1) >> miniKExp;
     this->miniBlocksLoc = new uint8_t[miniBlocksCount];
-    this->miniBlocksVal = new t_value[miniBlocksCount];
+    this->miniBlocksRank = new uint8_t[miniBlocksCount];
     this->miniBlocksInBlock = k / miniK;
 #endif
     this->blocksCount = (valuesArray.size() + k - 1) >> kExp;
@@ -104,11 +104,18 @@ void BbST::getBlocksMinsBase() {
     #pragma omp parallel for
     for (t_array_size i = 0; i < blocksCount - 1; i++) {
 #ifdef MINI_BLOCKS
+        t_value vals[miniBlocksInBlock];
+        t_value idxs2sort[miniBlocksInBlock];
         t_array_size miniI = i << (kExp - miniKExp);
-        for (t_array_size j = 0; j < miniBlocksInBlock; j++, miniI++) {
-            auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[(miniI + 1) << miniKExp]);
-            miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
-            miniBlocksVal[miniI] = *miniMinPtr;
+        for (t_array_size j = 0; j < miniBlocksInBlock; j++) {
+            auto miniMinPtr = std::min_element(&valuesArray[(miniI + j) << miniKExp], &valuesArray[(miniI + j + 1) << miniKExp]);
+            miniBlocksLoc[miniI + j] = miniMinPtr - &valuesArray[(miniI + j) << miniKExp];
+            vals[j] = *miniMinPtr;
+            idxs2sort[j] = j;
+        }
+        std::stable_sort(idxs2sort, idxs2sort + miniBlocksInBlock, [&vals](const uint8_t& a, const uint8_t& b) -> bool { return vals[a] < vals[b]; });
+        for (t_array_size j = 0; j < miniBlocksInBlock; j++) {
+            miniBlocksRank[miniI + idxs2sort[j]] = j;
         }
 #endif
         auto minPtr = std::min_element(&valuesArray[i << kExp], &valuesArray[(i + 1) << kExp]);
@@ -116,15 +123,24 @@ void BbST::getBlocksMinsBase() {
         blocksLoc2D[i] = minPtr - &valuesArray[0];
     }
 #ifdef MINI_BLOCKS
+    t_value vals[miniBlocksInBlock];
+    t_value idxs2sort[miniBlocksInBlock];
+    t_array_size j;
     t_array_size miniI = (blocksCount - 1) << (kExp - miniKExp);
-    for (; ((miniI + 1) << miniKExp) < valuesArray.size(); miniI++) {
-        auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[(miniI + 1) << miniKExp]);
-        miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
-        miniBlocksVal[miniI] = *miniMinPtr;
+    for (j = 0; ((miniI + j + 1) << miniKExp) < valuesArray.size(); j++) {
+        auto miniMinPtr = std::min_element(&valuesArray[(miniI + j) << miniKExp], &valuesArray[(miniI + j + 1) << miniKExp]);
+        miniBlocksLoc[miniI + j] = miniMinPtr - &valuesArray[(miniI + j) << miniKExp];
+        vals[j] = *miniMinPtr;
+        idxs2sort[j] = j;
     }
-    auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &(*valuesArray.end()));
-    miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
-    miniBlocksVal[miniI] = *miniMinPtr;
+    auto miniMinPtr = std::min_element(&valuesArray[(miniI + j) << miniKExp], &(*valuesArray.end()));
+    miniBlocksLoc[miniI + j] = miniMinPtr - &valuesArray[(miniI + j) << miniKExp];
+    vals[j] = *miniMinPtr;
+    idxs2sort[j] = j;
+    std::stable_sort(idxs2sort, idxs2sort + j + 1, [&vals](const uint8_t& a, const uint8_t& b) -> bool { return vals[a] < vals[b]; });
+    for (t_array_size j2 = 0; j2 <= j; j2++) {
+        miniBlocksRank[miniI + idxs2sort[j2]] = j2;
+    }
 #endif
     auto minPtr = std::min_element(&valuesArray[(blocksCount - 1) << kExp], &(*valuesArray.end()));
     blocksVal2D[blocksCount - 1] = *minPtr;
@@ -232,35 +248,43 @@ inline t_array_size BbST::miniScanMinIdx(const t_array_size &begIdx, const t_arr
         return rawScanMinIdx(begIdx, endIdx);
     }
     t_array_size miniI = -1;
+    t_value minRank = MAX_T_VALUE;
     t_value minVal = MAX_T_VALUE;
     if (endMiniIdx - begMiniIdx > 1) {
         for(t_array_size i = begMiniIdx + 1; i <= endMiniIdx - 1; i++) {
-            t_value tempVal = miniBlocksVal[i];
-            if (tempVal <= minVal) {
-                minVal = tempVal;
+            t_value tempRank = miniBlocksRank[i];
+            if (tempRank <= minRank) {
+                minRank = tempRank;
                 miniI = i;
             }
         }
+        if (minRank != MAX_T_VALUE) {
+            result = (miniI << miniKExp) + miniBlocksLoc[miniI];
+            minVal = valuesArray[result];
+        }
     }
 #ifndef WORSE_CASE
-    t_value tempVal = miniBlocksVal[begMiniIdx];
-    if (miniBlocksVal[begMiniIdx] <= minVal && begIdx != (begMiniIdx + 1) << miniKExp) {
+    bool rankMode = true;
+    t_value tempRank = miniBlocksRank[begMiniIdx];
+    if (tempRank < minRank && begIdx != (begMiniIdx + 1) << miniKExp) {
         const t_array_size firstMiniBlockMinLoc = (begMiniIdx << miniKExp) + miniBlocksLoc[begMiniIdx];
         if (firstMiniBlockMinLoc >= begIdx) {
-            minVal = tempVal;
+            minRank = tempRank;
             result = firstMiniBlockMinLoc;
+            minVal = valuesArray[result];
         } else {
             t_array_size minIdx = rawScanMinIdx(begIdx, ((begMiniIdx + 1) << miniKExp) - 1);
             if (valuesArray[minIdx] <= minVal) {
+                rankMode = false;
                 minVal = valuesArray[minIdx];
                 result = minIdx;
             }
         }
     }
-    tempVal = miniBlocksVal[endMiniIdx];
-    if (tempVal < minVal) {
+    tempRank = miniBlocksRank[endMiniIdx];
+    if (tempRank < minRank) {
         t_array_size lastBlockMinLoc = (endMiniIdx << miniKExp) + miniBlocksLoc[endMiniIdx];
-        if (lastBlockMinLoc <= endIdx) {
+        if (lastBlockMinLoc <= endIdx && (rankMode || valuesArray[lastBlockMinLoc] < minVal)) {
             result = lastBlockMinLoc;
         } else {
             t_array_size minIdx = rawScanMinIdx(endMiniIdx << miniKExp, endIdx);
@@ -280,9 +304,7 @@ inline t_array_size BbST::miniScanMinIdx(const t_array_size &begIdx, const t_arr
         result = minIdx;
     }
 #endif
-    if (result != (t_array_size) -1)
-        return result;
-    return (miniI << miniKExp) + miniBlocksLoc[miniI];
+    return result;
 }
 
 t_array_size BbST::scanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
@@ -298,7 +320,7 @@ void BbST::cleanup() {
     delete[] this->blocksVal2D;
 #ifdef MINI_BLOCKS
     delete[] this->miniBlocksLoc;
-    delete[] this->miniBlocksVal;
+    delete[] this->miniBlocksRank;
 #endif
 }
 
@@ -308,7 +330,7 @@ size_t BbST::memUsageInBytes() {
     const t_array_size blocksSize = blocksCount * D;
     size_t bytes = blocksSize * (sizeof(t_value) + sizeof(t_array_size));
 #ifdef MINI_BLOCKS
-    bytes += miniBlocksCount * (sizeof(uint8_t) + sizeof(t_value));
+    bytes += miniBlocksCount * (sizeof(uint8_t) + sizeof(uint8_t));
 #endif
     return bytes;
 }

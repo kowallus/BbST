@@ -43,7 +43,7 @@ private:
     t_array_size miniBlocksCount;
     int miniBlocksInBlock;
     uint8_t* miniBlocksLoc = 0;
-    t_value* miniBlocksVal = 0;
+    uint8_t* miniBlocksRank = 0;
 
     void getBlocksMinsBase();
     void getBlocksSparseTable();
