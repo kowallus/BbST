@@ -168,7 +168,7 @@ t_array_size BbST::getRangeMinLoc(const t_array_size &begIdx, const t_array_size
             }
         }
     }
-#ifndef WORSE_CASE
+#ifndef WORST_CASE
     if (blocksVal2D[begCompIdx] <= minVal && begIdx != (begCompIdx + 1) << kExp) {
         if (firstBlockMinLoc >= begIdx) {
             minVal = blocksVal2D[begCompIdx];
@@ -237,7 +237,7 @@ inline t_array_size BbST::miniScanMinIdx(const t_array_size &begIdx, const t_arr
             }
         }
     }
-#ifndef WORSE_CASE
+#ifndef WORST_CASE
     t_value tempVal = valuesArray[firstMiniBlockMinLoc];
     if (tempVal <= minVal && begIdx != (begMiniIdx + 1) << miniKExp) {
         if (firstMiniBlockMinLoc >= begIdx) {
