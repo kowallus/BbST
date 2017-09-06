@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -fopenmp")
 
 set(COMMON_SOURCE_FILES
+        common.cpp
         common.h
         utils/testdata.cc
         utils/testdata.h
@@ -25,10 +26,18 @@ set(BBST_SOURCE_FILES
         bbst.cpp
         bbst.h)
 
+set(BBSTHT_SOURCE_FILES
+        ${COMMON_SOURCE_FILES}
+        bbstht.cpp
+        bbstht.h)
+
 add_executable(bbstcon ${BBSTCON_SOURCE_FILES})
 add_executable(bbst bench/bbst_test.cpp ${BBST_SOURCE_FILES})
 add_executable(bbst_nb bench/bbst_nb_test.cpp ${BBST_SOURCE_FILES})
 add_executable(bbst2_nb bench/bbst2_nb_test.cpp ${BBST_SOURCE_FILES})
-add_executable(bbst2_nb_wc bench/bbst2_nb_test.cpp ${BBST_SOURCE_FILES})
 target_compile_definitions(bbst2_nb PUBLIC "-DMINI_BLOCKS")
+add_executable(bbst2_nb_wc bench/bbst2_nb_test.cpp ${BBST_SOURCE_FILES})
 target_compile_definitions(bbst2_nb_wc PUBLIC "-DMINI_BLOCKS -DWORST_CASE")
+add_executable(bbstht_nb bench/bbstht_nb_test.cpp ${BBSTHT_SOURCE_FILES})
+add_executable(bbst2ht_nb bench/bbst2ht_nb_test.cpp ${BBSTHT_SOURCE_FILES})
+target_compile_definitions(bbst2ht_nb PUBLIC "-DMINI_BLOCKS")
