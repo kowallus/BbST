@@ -113,9 +113,8 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
-    BbST solver(valuesArray, resultLoc, kExp, miniKExp);
     timer.startTimer();
-    solver.prepare();
+    BbST solver(&valuesArray[0], valuesArray.size(), kExp, miniKExp);
     timer.stopTimer();
     double buildTime = timer.getElapsedTime();
     if (verbose) cout << "Solving... ";
@@ -125,7 +124,7 @@ int main(int argc, char**argv) {
     for(int i = 0; i < repeats; i++) {
         cleanCache();
         timer.startTimer();
-        solver.solve(queries);
+        solver.rmqBatch(queries, resultLoc);
         timer.stopTimer();
         times.push_back(timer.getElapsedTime());
     }
@@ -141,7 +140,7 @@ int main(int argc, char**argv) {
     fout << medianQueryTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) << "\t" << max_range <<
          "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << (1 << miniKExp) << "\t" << noOfThreads <<
          "\t" << buildTime << "\t" << maxQueryTime << "\t" << minQueryTime << "\t" << std::endl;
-    if (verification) solver.verify();
+    if (verification) verify(valuesArray, queries, resultLoc);
 
     if (verbose) cout << "The end..." << std::endl;
     return 0;

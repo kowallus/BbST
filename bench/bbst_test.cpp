@@ -99,13 +99,7 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
-    timer.startTimer();
-    BbST solver(valuesArray, queries, resultLoc, kExp);
-    timer.stopTimer();
-    double buildTime = timer.getElapsedTime();
-    cout << buildTime << endl;
-
-    if (verbose) cout << "Solving... ";
+    BbST solver(kExp);
 
     omp_set_num_threads(noOfThreads);
     vector<double> times;
@@ -114,7 +108,7 @@ int main(int argc, char**argv) {
             cleanCache();
         }
         timer.startTimer();
-        solver.solve();
+        solver.rmqBatch(&valuesArray[0], valuesArray.size(), queries, resultLoc);
         timer.stopTimer();
         times.push_back(timer.getElapsedTime());
     }
@@ -127,7 +121,7 @@ int main(int argc, char**argv) {
     fout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) << "\t" << max_range <<
         "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads <<
         "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
-    if (verification) solver.verify();
+    if (verification) verify(valuesArray, queries, resultLoc);
 
     if (verbose) cout << "The end..." << std::endl;
     return 0;

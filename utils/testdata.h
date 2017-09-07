@@ -6,12 +6,14 @@
 
 using namespace std;
 
-void getRandomValues(vector<t_value> &data, t_value modulo = 0);
+void getRandomValues(vector<t_value> &data, const t_value modulo = 0);
 void getPermutationOfRange(vector<t_value> &data);
 
-void getRandomRangeQueries(vector<pair<t_array_size, t_array_size>> &queries, t_array_size array_size, t_array_size max_range_size);
+void getRandomRangeQueries(vector<pair<t_array_size, t_array_size>> &queries, const t_array_size array_size, const t_array_size max_range_size);
 
-vector<t_array_size> flattenQueries(vector<pair<t_array_size, t_array_size>> vector, t_array_size queries_count);
+vector<t_array_size> flattenQueries(const vector<pair<t_array_size, t_array_size>> &queriesPairs, const t_array_size queries_count);
+
+void verify(const vector<t_value> &valuesArray, const vector<t_array_size> &queries, t_array_size *resultLoc);
 
 void cleanCache();
 

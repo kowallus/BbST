@@ -2,7 +2,7 @@
 
 std::mt19937 randgenerator;
 
-void getRandomValues(vector<t_value> &data, t_value modulo) {
+void getRandomValues(vector<t_value> &data, const t_value modulo) {
      randgenerator.seed(randgenerator.default_seed);
      for(long long int i = 0; i < data.size(); i++) {
          data[i] = randgenerator();
@@ -28,7 +28,7 @@ void getPermutationOfRange(vector<t_value> &data) {
     }
 }
 
-void getRandomRangeQueries(vector<pair<t_array_size, t_array_size>> &queries, t_array_size array_size, t_array_size max_range_size) {
+void getRandomRangeQueries(vector<pair<t_array_size, t_array_size>> &queries, const t_array_size array_size, const t_array_size max_range_size) {
     randgenerator.seed(randgenerator.default_seed);
     for(long long int i = 0; i < queries.size(); i++) {
         const t_array_size randA = randgenerator() % (array_size);
@@ -51,7 +51,7 @@ void getRandomRangeQueries(vector<pair<t_array_size, t_array_size>> &queries, t_
     }
 }
 
-vector<t_array_size> flattenQueries(vector<pair<t_array_size, t_array_size>> queriesPairs, t_array_size queries_count) {
+vector<t_array_size> flattenQueries(const vector<pair<t_array_size, t_array_size>> &queriesPairs, const t_array_size queries_count) {
     vector<t_array_size> result;
     result.reserve(queries_count * 2);
     for(long long int i = 0; i < queries_count; i++) {
@@ -59,6 +59,27 @@ vector<t_array_size> flattenQueries(vector<pair<t_array_size, t_array_size>> que
         result.push_back(queriesPairs[i % queriesPairs.size()].second);
     }
     return result;
+}
+
+void verify(const vector<t_value> &valuesArray, const vector<t_array_size> &queries, t_array_size *resultLoc) {
+    cout << "Solution verification..." << std::endl;
+    unsigned int i;
+    const int q = queries.size() / 2;
+    vector<t_value> verifyVal(q);
+    vector<t_array_size> verifyLoc(q);
+    const t_value *const vaPtr = &valuesArray[0];
+    const t_array_size *const qPtr = &queries[0];
+    for(i = 0; i < q; i++) {
+        const t_value *const begPtr = vaPtr + qPtr[2*i];
+        const t_value *const endPtr = vaPtr + qPtr[2*i + 1] + 1;
+        const t_value *const minValPtr = std::min_element(begPtr, endPtr);
+        verifyVal[i] = *minValPtr;
+        verifyLoc[i] = minValPtr - vaPtr;
+        if (resultLoc[i] != MAX_T_ARRAYSIZE && verifyLoc[i] != resultLoc[i]) {
+            cout << "Error: " << i << " query (" << queries[i * 2] << ", " << queries[i * 2 + 1] << ") - expected "
+                 << verifyLoc[i] << " is " << resultLoc[i] << std::endl;
+        }
+    }
 }
 
 void cleanCache() {
