@@ -8,53 +8,29 @@
 #include "utils/kxsort.h"
 #include "utils/parallel_stable_sort.h"
 
-BbSTcon::BbSTcon(std::vector<t_value, std::allocator<t_value>> &valuesArray,
-                     std::vector<t_array_size, std::allocator<t_array_size>> &queries,
-                     t_array_size* resultLoc,
-                     sortingAlg_enum sortingAlg, int kExp) {
-    this->valuesArray = valuesArray;
-    this->queries = queries;
-    this->resultLoc = resultLoc;
+BbSTcon::BbSTcon(sortingAlg_enum sortingAlg, int kExp) {
     this->sortingAlg = sortingAlg;
     this->kExp = kExp;
     this->k = 1 << kExp;
 }
 
-void BbSTcon::solve() {
-    getUniqueBoundsSorted();
+void BbSTcon::rmqBatch(const t_value* valuesArray, const t_array_size n, const vector<t_array_size> &queries, t_array_size *resultLoc) {
+    this->valuesArray = valuesArray;
+    this->n = n;
+    this->q = queries.size();
+    getUniqueBoundsSorted(queries);
     getContractedMins();
     getBlocksMins();
     #pragma omp parallel for
     for(int i = 0; i < queries.size(); i = i + 2) {
         if (queries[i] == queries[i+1]) {
-            this->resultLoc[i/2] = queries[i];
+            resultLoc[i/2] = queries[i];
             continue;
         }
-        this->resultLoc[i/2] = getRangeMinLoc(queries2ContractedIdx[i], queries2ContractedIdx[i+1]);
+        resultLoc[i/2] = getContractedRMQ(queries2ContractedIdx[i], queries2ContractedIdx[i + 1]);
     }
     cleanup();
 /**/
-}
-
-void BbSTcon::verify() {
-    cout << "Solution verification..." << std::endl;
-    unsigned int i;
-    const int q = queries.size() / 2;
-    this->verifyLoc.resize(q);
-    this->verifyVal.resize(q);
-    t_value *const vaPtr = &this->valuesArray[0];
-    t_array_size *const qPtr = &this->queries[0];
-    for(i = 0; i < q; i++) {
-        t_value *const begPtr = vaPtr + qPtr[2*i];
-        t_value *const endPtr = vaPtr + qPtr[2*i + 1] + 1;
-        t_value *const minValPtr = std::min_element(begPtr, endPtr);
-        verifyVal[i] = *minValPtr;
-        verifyLoc[i] = minValPtr - vaPtr;
-        if (verifyLoc[i] != resultLoc[i]) {
-            cout << "Error: " << i << " query (" << queries[i * 2] << ", " << queries[i * 2 + 1] << ") - expected "
-                 << verifyLoc[i] << " is " << resultLoc[i] << std::endl;
-        }
-    }
 }
 
 struct RadixTraitsBounds {
@@ -67,7 +43,7 @@ struct RadixTraitsBounds {
     }
 };
 
-void BbSTcon::getUniqueBoundsSorted() {
+void BbSTcon::getUniqueBoundsSorted(const vector<t_array_size> &queries) {
     bounds = new t_array_size_2x[queries.size()];
     for (t_array_size i = 0; i < queries.size(); i++) {
         *((t_array_size *) (&bounds[i])) = queries[i];
@@ -92,11 +68,11 @@ void BbSTcon::getUniqueBoundsSorted() {
 }
 
 void BbSTcon::getContractedMins() {
-    contractedVal = new t_value[queries.size() - 1];
-    contractedLoc = new t_array_size[queries.size() - 1];
+    contractedVal = new t_value[q - 1];
+    contractedLoc = new t_array_size[q - 1];
 
     #pragma omp parallel for
-    for(int i = 1;  i < queries.size(); i++) {
+    for(int i = 1;  i < q; i++) {
         t_array_size minIdx = *((t_array_size*) (bounds + i - 1));
         const t_array_size endIdx = *((t_array_size*) (bounds + i));
 
@@ -107,7 +83,7 @@ void BbSTcon::getContractedMins() {
 }
 
 void BbSTcon::getBlocksMins() {
-    this->blocksCount = (queries.size() - 1 + k - 1) >> kExp;
+    this->blocksCount = (q - 1 + k - 1) >> kExp;
     D = 32 - __builtin_clz(blocksCount);
     const t_array_size blocksSize = blocksCount * D;
     blocksVal2D = new t_value[blocksSize];
@@ -118,7 +94,7 @@ void BbSTcon::getBlocksMins() {
         blocksVal2D[i] = *minPtr;
         blocksLoc2D[i] = contractedLoc[minPtr - contractedVal];
     }
-    auto minPtr = std::min_element(&contractedVal[(blocksCount - 1) << kExp], &contractedVal[queries.size() - 1]);
+    auto minPtr = std::min_element(&contractedVal[(blocksCount - 1) << kExp], &contractedVal[q - 1]);
     blocksVal2D[blocksCount - 1] = *minPtr;
     blocksLoc2D[blocksCount - 1] = contractedLoc[minPtr - contractedVal];
     for(t_array_size e = 1, step = 1; e < D; ++e, step <<= 1) {
@@ -135,7 +111,7 @@ void BbSTcon::getBlocksMins() {
     }
 }
 
-t_array_size BbSTcon::getRangeMinLoc(const t_array_size &begContIdx, const t_array_size &endContIdx) {
+t_array_size BbSTcon::getContractedRMQ(const t_array_size &begContIdx, const t_array_size &endContIdx) {
     t_array_size result = -1;
     const t_array_size begCompIdx = begContIdx >> kExp;
     const t_array_size endCompIdx = endContIdx >> kExp;
@@ -207,10 +183,10 @@ void BbSTcon::cleanup() {
 }
 
 size_t BbSTcon::memUsageInBytes() {
-    const size_t boundsBytes = queries.size() * sizeof(t_array_size_2x);
-    const size_t queries2ContractedIdxBytes = queries.size() * sizeof(t_array_size);
-    const size_t contractedBytes = (queries.size() - 1) * (sizeof(t_value) + sizeof(t_array_size));
-    const t_array_size blocksCount = ((queries.size() - 1 + k - 1)/ k);
+    const size_t boundsBytes = q * sizeof(t_array_size_2x);
+    const size_t queries2ContractedIdxBytes = q * sizeof(t_array_size);
+    const size_t contractedBytes = (q - 1) * (sizeof(t_value) + sizeof(t_array_size));
+    const t_array_size blocksCount = ((q - 1 + k - 1)/ k);
     D = 32 - __builtin_clz(blocksCount);
     const t_array_size blocksSize = blocksCount * D;
     const size_t blocksBytes = blocksSize * (sizeof(t_value) + sizeof(t_array_size));
