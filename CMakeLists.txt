@@ -5,7 +5,6 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -fopenmp")
 
 set(COMMON_SOURCE_FILES
-        common.cpp
         common.h
         utils/testdata.cc
         utils/testdata.h

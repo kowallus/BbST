@@ -16,7 +16,5 @@ typedef long long int t_array_size_2x;
 
 using namespace std;
 
-void verify(const vector<t_value> &valuesArray, const vector<t_array_size> &queries, t_array_size *resultLoc);
-
 #endif /* COMMON_H */
 
