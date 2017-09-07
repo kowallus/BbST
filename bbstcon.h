@@ -17,14 +17,9 @@ enum sortingAlg_enum
 
 class BbSTcon {
 public:
-    BbSTcon(std::vector<t_value , std::allocator<t_value>> &valuesArray,
-              std::vector<t_array_size, std::allocator<t_array_size>> &queries,
-              t_array_size* resultLoc,
-              sortingAlg_enum sortingAlg, int kExp);
+    BbSTcon(sortingAlg_enum sortingAlg, int kExp);
 
-    void solve();
-
-    void verify();
+    void rmqBatch(const t_value* valuesArray, const t_array_size n, const vector<t_array_size> &queries, t_array_size *resultLoc);
 
     size_t memUsageInBytes();
 
@@ -33,9 +28,9 @@ private:
     int k, kExp, D;
     sortingAlg_enum sortingAlg;
 
-    vector<t_value> valuesArray;
-    vector<t_array_size> queries;
-    t_array_size* resultLoc;
+    const t_value *valuesArray;
+    t_array_size n;
+    size_t q;
 
     vector<t_value> verifyVal;
     vector<t_array_size> verifyLoc;
@@ -47,10 +42,10 @@ private:
     t_value* blocksVal2D = 0;
     t_array_size*  blocksLoc2D = 0;
 
-    void getUniqueBoundsSorted();
+    void getUniqueBoundsSorted(const vector<t_array_size> &queries);
     void getContractedMins();
     void getBlocksMins();
-    t_array_size getRangeMinLoc(const t_array_size &begContIdx, const t_array_size &endContIdx);
+    t_array_size getContractedRMQ(const t_array_size &begContIdx, const t_array_size &endContIdx);
     t_array_size scanContractedMinIdx(const t_array_size &begContIdx, const t_array_size &endContIdx);
 
     void cleanup();

@@ -5,15 +5,12 @@
 #include <omp.h>
 
 #ifdef MINI_BLOCKS
-BbST::BbST(vector<t_value> valuesArray, vector<t_array_size> queries, t_array_size *resultLoc, int kExp, int miniKExp) {
+BbST::BbST(int kExp, int miniKExp) {
     this->miniKExp = miniKExp;
     this->miniK = 1 << miniKExp;
 #else
-BbST::BbST(vector<t_value> valuesArray, vector<t_array_size> queries, t_array_size *resultLoc, int kExp) {
+BbST::BbST(int kExp) {
 #endif
-    this->valuesArray = valuesArray;
-    this->queries = queries;
-    this->resultLoc = resultLoc;
     this->kExp = kExp;
     this->k = 1 << kExp;
 }
@@ -22,80 +19,46 @@ BbST::~BbST() {
     if (batchMode) cleanup();
 }
 
-void BbST::solve() {
+void BbST::rmqBatch(const t_value* valuesArray, const t_array_size n, const vector<t_array_size> &queries, t_array_size *resultLoc) {
+    this->valuesArray = valuesArray;
+    this->n = n;
     getBlocksMinsBase();
     getBlocksSparseTable();
-    #pragma omp parallel for
-    for (int i = 0; i < queries.size(); i = i + 2) {
-        if (queries[i] == queries[i + 1]) {
-            this->resultLoc[i / 2] = queries[i];
-            continue;
-        }
-        this->resultLoc[i / 2] = getRangeMinLoc(queries[i], queries[i + 1]);
-    }
+    this->rmqBatch(queries, resultLoc);
     cleanup();
 /**/
 }
 
 #ifdef MINI_BLOCKS
-BbST::BbST(vector<t_value> valuesArray, t_array_size *resultLoc, int kExp, int miniKExp) {
+BbST::BbST(const t_value* valuesArray, const t_array_size n, int kExp, int miniKExp) {
     this->miniKExp = miniKExp;
     this->miniK = 1 << miniKExp;
 #else
-BbST::BbST(vector<t_value> valuesArray, t_array_size *resultLoc, int kExp) {
+BbST::BbST(const t_value* valuesArray, const t_array_size n, int kExp) {
 #endif
     this->valuesArray = valuesArray;
-    this->resultLoc = resultLoc;
+    this->n = n;
     this->kExp = kExp;
     this->k = 1 << kExp;
     this->batchMode = true;
-}
-
-void BbST::prepare() {
     getBlocksMinsBase();
     getBlocksSparseTable();
 }
 
-void BbST::solve(vector<t_array_size> queries) {
-    this->queries = queries;
+void BbST::rmqBatch(const vector<t_array_size> &queries, t_array_size *resultLoc) {
     #pragma omp parallel for
     for (int i = 0; i < queries.size(); i = i + 2) {
-        if (queries[i] == queries[i + 1]) {
-            this->resultLoc[i / 2] = queries[i];
-            continue;
-        }
-        this->resultLoc[i / 2] = getRangeMinLoc(queries[i], queries[i + 1]);
-    }
-}
-
-void BbST::verify() {
-    cout << "Solution verification..." << std::endl;
-    unsigned int i;
-    const int q = queries.size() / 2;
-    this->verifyLoc.resize(q);
-    this->verifyVal.resize(q);
-    t_value *const vaPtr = &this->valuesArray[0];
-    t_array_size *const qPtr = &this->queries[0];
-    for(i = 0; i < q; i++) {
-        t_value *const begPtr = vaPtr + qPtr[2*i];
-        t_value *const endPtr = vaPtr + qPtr[2*i + 1] + 1;
-        t_value *const minValPtr = std::min_element(begPtr, endPtr);
-        verifyVal[i] = *minValPtr;
-        verifyLoc[i] = minValPtr - vaPtr;
-        if (verifyLoc[i] != resultLoc[i]) {
-            cout << "Error: " << i << " query (" << queries[i * 2] << ", " << queries[i * 2 + 1] << ") - expected "
-                 << verifyLoc[i] << " is " << resultLoc[i] << std::endl;
-        }
+        resultLoc[i / 2] = rmq(queries[i], queries[i + 1]);
     }
 }
 
 void BbST::getBlocksMinsBase() {
 #ifdef MINI_BLOCKS
-    this->miniBlocksCount = (valuesArray.size() + miniK - 1) >> miniKExp;
+    this->miniBlocksCount = (n + miniK - 1) >> miniKExp;
     this->miniBlocksLoc = new uint8_t[miniBlocksCount];
     this->miniBlocksInBlock = k / miniK;
 #endif
-    this->blocksCount = (valuesArray.size() + k - 1) >> kExp;
+    this->blocksCount = (n + k - 1) >> kExp;
     this->D = 32 - __builtin_clz(blocksCount);
     const t_array_size blocksSize = blocksCount * D;
     blocksVal2D = new t_value[blocksSize];
@@ -115,14 +78,14 @@ void BbST::getBlocksMinsBase() {
     }
 #ifdef MINI_BLOCKS
     t_array_size miniI = (blocksCount - 1) << (kExp - miniKExp);
-    for (; ((miniI + 1) << miniKExp) < valuesArray.size(); miniI++) {
+    for (; ((miniI + 1) << miniKExp) < n; miniI++) {
         auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[(miniI + 1) << miniKExp]);
         miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
     }
-    auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &(*valuesArray.end()));
+    auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[n]);
     miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
 #endif
-    auto minPtr = std::min_element(&valuesArray[(blocksCount - 1) << kExp], &(*valuesArray.end()));
+    auto minPtr = std::min_element(&valuesArray[(blocksCount - 1) << kExp], &valuesArray[n]);
     blocksVal2D[blocksCount - 1] = *minPtr;
     blocksLoc2D[blocksCount - 1] = minPtr - &valuesArray[0];
 }
@@ -142,7 +105,9 @@ void BbST::getBlocksSparseTable() {
     }
 }
 
-t_array_size BbST::getRangeMinLoc(const t_array_size &begIdx, const t_array_size &endIdx) {
+t_array_size BbST::rmq(const t_array_size &begIdx, const t_array_size &endIdx) {
+    if (begIdx == endIdx)
+        return begIdx;
     t_array_size result = -1;
     const t_array_size begCompIdx = begIdx >> kExp;
     const t_array_size endCompIdx = endIdx >> kExp;
@@ -294,7 +259,6 @@ void BbST::cleanup() {
 }
 
 size_t BbST::memUsageInBytes() {
-    const t_array_size blocksCount = ((valuesArray.size() - 1 + k - 1) >> kExp);
     D = 32 - __builtin_clz(blocksCount);
     const t_array_size blocksSize = blocksCount * D;
     size_t bytes = blocksSize * (sizeof(t_value) + sizeof(t_array_size));
