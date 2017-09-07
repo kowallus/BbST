@@ -35,6 +35,12 @@ set(BBSTQHT_SOURCE_FILES
         bbstqht.h
         bbstqht.hpp)
 
+set(HFERRADA_RMQ_SOURCE_FILES
+        RMQRMM64.cpp
+        includes/RMQRMM64.h
+        includes/Basic_rmq.cpp
+        includes/Basic_rmq.h)
+
 add_executable(bbstcon ${BBSTCON_SOURCE_FILES})
 add_executable(bbst bench/bbst_test.cpp ${BBST_SOURCE_FILES})
 add_executable(bbst_nb bench/bbst_nb_test.cpp ${BBST_SOURCE_FILES})
@@ -48,3 +54,10 @@ target_compile_definitions(bbst2ht_nb PUBLIC "-DMINI_BLOCKS")
 add_executable(bbstqht_nb bench/bbstqht_nb_test.cpp ${BBSTQHT_SOURCE_FILES})
 add_executable(bbst2qht_nb bench/bbst2qht_nb_test.cpp ${BBSTHT_SOURCE_FILES})
 target_compile_definitions(bbst2qht_nb PUBLIC "-DMINI_BLOCKS")
+add_executable(bbst-fn_nb bench/bbst-fn_nb_test.cpp ${BBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
+add_executable(qbbst-fn_nb bench/bbst-fn_nb_test.cpp ${BBSTQHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
+target_compile_definitions(qbbst-fn_nb PUBLIC "-DQUANTIZED")
+add_executable(bbst2-fn_nb bench/bbst2-fn_nb_test.cpp ${BBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
+target_compile_definitions(bbst2-fn_nb PUBLIC "-DMINI_BLOCKS")
+add_executable(qbbst2-fn_nb bench/bbst2-fn_nb_test.cpp ${BBSTQHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
+target_compile_definitions(qbbst2-fn_nb PUBLIC "-DMINI_BLOCKS -DQUANTIZED")

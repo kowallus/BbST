@@ -99,12 +99,13 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
-    RMQCounter rmqCounter;
+    if (verbose) cout << "Building sBbST... " << std::endl;
     timer.startTimer();
+    RMQCounter rmqCounter;
     BbSTht solver(valuesArray, kExp, &rmqCounter);
     timer.stopTimer();
     double buildTime = timer.getElapsedTime();
-    if (verbose) cout << "Solving... ";
+    if (verbose) cout << "Solving... " << std::endl;
 
     omp_set_num_threads(noOfThreads);
     vector<double> times;

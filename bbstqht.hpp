@@ -313,5 +313,5 @@ template<typename t_qvalue, int max_qvalue> size_t BbSTqht<t_qvalue, max_qvalue>
 #ifdef MINI_BLOCKS
     bytes += miniBlocksCount * (sizeof(uint8_t) + sizeof(t_qvalue));
 #endif
-    return bytes;
+    return bytes + secondaryRMQ->memUsageInBytes();
 }

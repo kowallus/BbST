@@ -226,6 +226,6 @@ size_t BbSTht::memUsageInBytes() {
 #ifdef MINI_BLOCKS
     bytes += miniBlocksCount * (sizeof(uint8_t) + sizeof(t_value));
 #endif
-    return bytes;
+    return bytes + secondaryRMQ->memUsageInBytes();
 }
 
