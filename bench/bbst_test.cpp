@@ -101,6 +101,7 @@ int main(int argc, char**argv) {
 
     BbST solver(kExp);
 
+    if (verbose) cout << "Solving... " << std::endl;
     omp_set_num_threads(noOfThreads);
     vector<double> times;
     for(int i = 0; i < repeats; i++) {

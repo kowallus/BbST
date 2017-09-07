@@ -108,7 +108,7 @@ int main(int argc, char**argv) {
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
     BbSTcon solver(sortingAlg, kExp);
-    if (verbose) cout << "Solving... ";
+    if (verbose) cout << "Solving... " << std::endl;
 
     omp_set_num_threads(noOfThreads);
     vector<double> times;
