@@ -4,7 +4,7 @@
 #include "../utils/testdata.h"
 #include "../utils/timer.h"
 #ifdef QUANTIZED
-#include "../bbstqht.h"
+#include "../cbbstht.h"
 #else
 #include "../bbstht.h"
 #endif
@@ -16,7 +16,7 @@ using namespace rmqrmm;
 int main(int argc, char**argv) {
 
 #ifdef QUANTIZED
-    fstream fout("qbbst2-fn_nb_res.txt", ios::out | ios::binary | ios::app);
+    fstream fout("cbbst2-fn_nb_res.txt", ios::out | ios::binary | ios::app);
 #else
     fstream fout("bbst2-fn_nb_res.txt", ios::out | ios::binary | ios::app);
 #endif
@@ -126,7 +126,7 @@ int main(int argc, char**argv) {
     timer.startTimer();
     FNRMQBP fnRMQBP(&valuesArray[0], valuesArray.size());
 #ifdef QUANTIZED
-    BbSTqht<uint8_t, 255> solver(valuesArray, kExp, miniKExp, &fnRMQBP);
+    CBbSTht<uint8_t, 255> solver(valuesArray, kExp, miniKExp, &fnRMQBP);
 #else
     BbSTht solver(valuesArray, kExp, miniKExp, &fnRMQBP);
 #endif

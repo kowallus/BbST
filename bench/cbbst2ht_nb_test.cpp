@@ -3,14 +3,14 @@
 
 #include "../utils/testdata.h"
 #include "../utils/timer.h"
-#include "../bbstqht.h"
+#include "../cbbstht.h"
 
 #include <unistd.h>
 #include <omp.h>
 
 int main(int argc, char**argv) {
 
-    fstream fout("bbst2qht_nb_res.txt", ios::out | ios::binary | ios::app);
+    fstream fout("cbbst2ht_nb_res.txt", ios::out | ios::binary | ios::app);
 
     ChronoStopWatch timer;
     bool verbose = true;
@@ -114,10 +114,10 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
-    if (verbose) cout << "Building sqBbST2... " << std::endl;
+    if (verbose) cout << "Building cBbST2... " << std::endl;
     timer.startTimer();
     RMQCounter rmqCounter;
-    BbSTqht<uint8_t, 255> solver(valuesArray, kExp, miniKExp, &rmqCounter);
+    CBbSTht<uint8_t, 255> solver(valuesArray, kExp, miniKExp, &rmqCounter);
     timer.stopTimer();
     double buildTime = timer.getElapsedTime();
     if (verbose) cout << "Solving... " << std::endl;

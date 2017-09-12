@@ -30,10 +30,10 @@ set(BBSTHT_SOURCE_FILES
         bbstht.cpp
         bbstht.h)
 
-set(BBSTQHT_SOURCE_FILES
+set(CBBSTHT_SOURCE_FILES
         ${COMMON_SOURCE_FILES}
-        bbstqht.h
-        bbstqht.hpp)
+        cbbstht.h
+        cbbstht.hpp)
 
 set(HFERRADA_RMQ_SOURCE_FILES
         RMQRMM64.cpp
@@ -51,13 +51,13 @@ target_compile_definitions(bbst2_nb_wc PUBLIC "-DMINI_BLOCKS -DWORST_CASE")
 add_executable(bbstht_nb bench/bbstht_nb_test.cpp ${BBSTHT_SOURCE_FILES})
 add_executable(bbst2ht_nb bench/bbst2ht_nb_test.cpp ${BBSTHT_SOURCE_FILES})
 target_compile_definitions(bbst2ht_nb PUBLIC "-DMINI_BLOCKS")
-add_executable(bbstqht_nb bench/bbstqht_nb_test.cpp ${BBSTQHT_SOURCE_FILES})
-add_executable(bbst2qht_nb bench/bbst2qht_nb_test.cpp ${BBSTHT_SOURCE_FILES})
-target_compile_definitions(bbst2qht_nb PUBLIC "-DMINI_BLOCKS")
+add_executable(cbbstht_nb bench/cbbstht_nb_test.cpp ${CBBSTHT_SOURCE_FILES})
+add_executable(cbbst2ht_nb bench/cbbst2ht_nb_test.cpp ${CBBSTHT_SOURCE_FILES})
+target_compile_definitions(cbbst2ht_nb PUBLIC "-DMINI_BLOCKS")
 add_executable(bbst-fn_nb bench/bbst-fn_nb_test.cpp ${BBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
-add_executable(qbbst-fn_nb bench/bbst-fn_nb_test.cpp ${BBSTQHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
-target_compile_definitions(qbbst-fn_nb PUBLIC "-DQUANTIZED")
+add_executable(cbbst-fn_nb bench/bbst-fn_nb_test.cpp ${CBBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
+target_compile_definitions(cbbst-fn_nb PUBLIC "-DQUANTIZED")
 add_executable(bbst2-fn_nb bench/bbst2-fn_nb_test.cpp ${BBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
 target_compile_definitions(bbst2-fn_nb PUBLIC "-DMINI_BLOCKS")
-add_executable(qbbst2-fn_nb bench/bbst2-fn_nb_test.cpp ${BBSTQHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
-target_compile_definitions(qbbst2-fn_nb PUBLIC "-DMINI_BLOCKS -DQUANTIZED")
+add_executable(cbbst2-fn_nb bench/bbst2-fn_nb_test.cpp ${CBBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
+target_compile_definitions(cbbst2-fn_nb PUBLIC "-DMINI_BLOCKS -DQUANTIZED")

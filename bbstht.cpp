@@ -220,7 +220,6 @@ void BbSTht::cleanup() {
 }
 
 size_t BbSTht::memUsageInBytes() {
-    D = 32 - __builtin_clz(blocksCount);
     const t_array_size blocksSize = blocksCount * D;
     size_t bytes = blocksSize * (sizeof(t_value) + sizeof(t_array_size));
 #ifdef MINI_BLOCKS
