@@ -37,10 +37,10 @@ template<typename t_qvalue, int max_qvalue>  inline t_qvalue CBbSTht<t_qvalue, m
 //    double valMinMaxRatio = 1 - (pow((double) maxMinVal - value, ratioExp) / (pow((double) maxMinVal - minMinVal, ratioExp)));
     double a = maxMinVal - value;
     a *= a;
-    a *= a * a;
+//    a *= a * a;
     double b = maxMinVal - minMinVal;
     b *= b;
-    b *= b * b;
+//    b *= b * b;
     double valMinMaxRatio = 1 - a / b;
     return (max_qvalue - 1) * valMinMaxRatio;
 }
