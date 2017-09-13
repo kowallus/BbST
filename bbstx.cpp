@@ -2,20 +2,20 @@
 #include <iostream>
 #include <numeric>
 
-#include "bbstht.h"
+#include "bbstx.h"
 
 #include <omp.h>
 
-BbSTht::~BbSTht() {
+BbSTx::~BbSTx() {
     cleanup();
 }
 
 #ifdef MINI_BLOCKS
-BbSTht::BbSTht(const vector<t_value> &valuesArray, int kExp, int miniKExp, RMQAPI* secondaryRMQ) {
+BbSTx::BbSTx(const vector<t_value> &valuesArray, int kExp, int miniKExp, RMQAPI* secondaryRMQ) {
     this->miniKExp = miniKExp;
     this->miniK = 1 << miniKExp;
 #else
-    BbSTht::BbSTht(const vector<t_value> &valuesArray, int kExp, RMQAPI* secondaryRMQ) {
+BbSTx::BbSTx(const vector<t_value> &valuesArray, int kExp, RMQAPI* secondaryRMQ) {
 #endif
     this->kExp = kExp;
     this->k = 1 << kExp;
@@ -24,13 +24,13 @@ BbSTht::BbSTht(const vector<t_value> &valuesArray, int kExp, int miniKExp, RMQAP
     getBlocksSparseTable();
 }
 
-void BbSTht::rmqBatch(const vector<t_array_size> &queries, t_array_size *resultLoc) {
+void BbSTx::rmqBatch(const vector<t_array_size> &queries, t_array_size *resultLoc) {
     for (int i = 0; i < queries.size(); i = i + 2) {
         resultLoc[i / 2] = rmq(queries[i], queries[i + 1]);
     }
 }
 
-void BbSTht::getBlocksMinsBase(const vector<t_value> &valuesArray) {
+void BbSTx::getBlocksMinsBase(const vector<t_value> &valuesArray) {
 #ifdef MINI_BLOCKS
     this->miniBlocksCount = (valuesArray.size() + miniK - 1) >> miniKExp;
     this->miniBlocksLoc = new uint8_t[miniBlocksCount];
@@ -72,7 +72,7 @@ void BbSTht::getBlocksMinsBase(const vector<t_value> &valuesArray) {
     blocksLoc2D[blocksCount - 1] = minPtr - &valuesArray[0];
 }
 
-void BbSTht::getBlocksSparseTable() {
+void BbSTx::getBlocksSparseTable() {
     for(t_array_size e = 1, step = 1; e < D; ++e, step <<= 1) {
         for (t_array_size i = 0; i < blocksCount; i++) {
             t_array_size minIdx = i;
@@ -87,7 +87,7 @@ void BbSTht::getBlocksSparseTable() {
     }
 }
 
-t_array_size BbSTht::rmq(const t_array_size &begIdx, const t_array_size &endIdx) {
+t_array_size BbSTx::rmq(const t_array_size &begIdx, const t_array_size &endIdx) {
     if (begIdx == endIdx) {
         return begIdx;
     }
@@ -167,7 +167,7 @@ t_array_size BbSTht::rmq(const t_array_size &begIdx, const t_array_size &endIdx)
     return result;
 }
 
-inline t_array_size BbSTht::miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
+inline t_array_size BbSTx::miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
     t_array_size result = -1;
     const t_array_size begMiniIdx = begIdx >> miniKExp;
     const t_array_size endMiniIdx = endIdx >> miniKExp;
@@ -210,7 +210,7 @@ inline t_array_size BbSTht::miniScanMinIdx(const t_array_size &begIdx, const t_a
     return result;
 }
 
-void BbSTht::cleanup() {
+void BbSTx::cleanup() {
     delete[] this->blocksLoc2D;
     delete[] this->blocksVal2D;
 #ifdef MINI_BLOCKS
@@ -219,7 +219,7 @@ void BbSTht::cleanup() {
 #endif
 }
 
-size_t BbSTht::memUsageInBytes() {
+size_t BbSTx::memUsageInBytes() {
     const t_array_size blocksSize = blocksCount * D;
     size_t bytes = blocksSize * (sizeof(t_value) + sizeof(t_array_size));
 #ifdef MINI_BLOCKS

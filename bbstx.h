@@ -1,5 +1,5 @@
-#ifndef BBST_BBSTHT_H
-#define BBST_BBSTHT_H
+#ifndef BBST_BBSTX_H
+#define BBST_BBSTX_H
 
 #include <vector>
 #include "common.h"
@@ -7,19 +7,19 @@
 
 using namespace std;
 
-class BbSTht {
+class BbSTx {
 public:
 
 #ifdef MINI_BLOCKS
-    BbSTht(const vector<t_value> &valuesArray, int kExp, int miniKExp, RMQAPI* secondaryRMQ);
+    BbSTx(const vector<t_value> &valuesArray, int kExp, int miniKExp, RMQAPI* secondaryRMQ);
 #else
-    BbSTht(const vector<t_value> &valuesArray, int kExp, RMQAPI* secondaryRMQ);
+    BbSTx(const vector<t_value> &valuesArray, int kExp, RMQAPI* secondaryRMQ);
 #endif
     void rmqBatch(const vector<t_array_size> &queries, t_array_size *resultLoc);
 
     t_array_size rmq(const t_array_size &begIdx, const t_array_size &endIdx);
 
-    virtual ~BbSTht();
+    virtual ~BbSTx();
 
     size_t memUsageInBytes();
 
@@ -49,4 +49,4 @@ private:
 
 };
 
-#endif //BBST_BBSTHT_H
+#endif //BBST_BBSTX_H

@@ -2,20 +2,20 @@
 #include <iostream>
 #include <numeric>
 #include "math.h"
-#include "cbbstht.h"
+#include "cbbstx.h"
 
 #include <omp.h>
 
-template<typename t_qvalue, int max_qvalue> CBbSTht<t_qvalue, max_qvalue>::~CBbSTht() {
+template<typename t_qvalue, int max_qvalue> CBbSTx<t_qvalue, max_qvalue>::~CBbSTx() {
     cleanup();
 }
 
 #ifdef MINI_BLOCKS
-template<typename t_qvalue, int max_qvalue> CBbSTht<t_qvalue, max_qvalue>::CBbSTht(const vector<t_value> &valuesArray, int kExp, int miniKExp, RMQAPI* secondaryRMQ) {
+template<typename t_qvalue, int max_qvalue> CBbSTx<t_qvalue, max_qvalue>::CBbSTx(const vector<t_value> &valuesArray, int kExp, int miniKExp, RMQAPI* secondaryRMQ) {
     this->miniKExp = miniKExp;
     this->miniK = 1 << miniKExp;
 #else
-template<typename t_qvalue, int max_qvalue> CBbSTht<t_qvalue, max_qvalue>::CBbSTht(const vector<t_value> &valuesArray, int kExp, RMQAPI* secondaryRMQ) {
+template<typename t_qvalue, int max_qvalue> CBbSTx<t_qvalue, max_qvalue>::CBbSTx(const vector<t_value> &valuesArray, int kExp, RMQAPI* secondaryRMQ) {
 #endif
     this->kExp = kExp;
     this->k = 1 << kExp;
@@ -23,13 +23,13 @@ template<typename t_qvalue, int max_qvalue> CBbSTht<t_qvalue, max_qvalue>::CBbST
     prepareMinTables(valuesArray);
 }
 
-template<typename t_qvalue, int max_qvalue> void CBbSTht<t_qvalue, max_qvalue>::rmqBatch(const vector<t_array_size> &queries, t_array_size *resultLoc) {
+template<typename t_qvalue, int max_qvalue> void CBbSTx<t_qvalue, max_qvalue>::rmqBatch(const vector<t_array_size> &queries, t_array_size *resultLoc) {
     for (int i = 0; i < queries.size(); i = i + 2) {
         resultLoc[i / 2] = rmq(queries[i], queries[i + 1]);
     }
 }
 
-template<typename t_qvalue, int max_qvalue>  inline t_qvalue CBbSTht<t_qvalue, max_qvalue>::quantizeValue(const t_value value) {
+template<typename t_qvalue, int max_qvalue>  inline t_qvalue CBbSTx<t_qvalue, max_qvalue>::quantizeValue(const t_value value) {
 //    double valMinMaxRatio = 1 - ((((double) maxMinVal - value)) / (((double) maxMinVal - minMinVal)));
 //    double valMinMaxRatio = 1 - ((((double) maxMinVal - value)*(maxMinVal - value)) / (((double) maxMinVal - minMinVal)*(maxMinVal - minMinVal)));
 //    double valMinMaxRatio = 1 - ((((double) maxMinVal - value)*(maxMinVal - value)*(maxMinVal - value)) / (((double) maxMinVal - minMinVal)*(maxMinVal - minMinVal)*(maxMinVal - minMinVal)));
@@ -45,7 +45,7 @@ template<typename t_qvalue, int max_qvalue>  inline t_qvalue CBbSTht<t_qvalue, m
     return (max_qvalue - 1) * valMinMaxRatio;
 }
 
-template<typename t_qvalue, int max_qvalue> void CBbSTht<t_qvalue, max_qvalue>::prepareMinTables(const vector<t_value> &valuesArray) {
+template<typename t_qvalue, int max_qvalue> void CBbSTx<t_qvalue, max_qvalue>::prepareMinTables(const vector<t_value> &valuesArray) {
 #ifdef MINI_BLOCKS
     this->miniBlocksCount = (valuesArray.size() + miniK - 1) >> miniKExp;
     this->miniBlocksLoc = new uint8_t[miniBlocksCount];
@@ -111,7 +111,7 @@ template<typename t_qvalue, int max_qvalue> void CBbSTht<t_qvalue, max_qvalue>::
     prepareBlocksSparseTable(tempBlocksVal, tempBlocksLoc);
 }
 
-template<typename t_qvalue, int max_qvalue> void CBbSTht<t_qvalue, max_qvalue>::prepareBlocksSparseTable(vector<t_value> &tempBlocksVal, vector<t_array_size> &tempBlocksLoc) {
+template<typename t_qvalue, int max_qvalue> void CBbSTx<t_qvalue, max_qvalue>::prepareBlocksSparseTable(vector<t_value> &tempBlocksVal, vector<t_array_size> &tempBlocksLoc) {
     t_array_size eBDoffset = 0;
     t_array_size eRDoffset = 0;
     for(t_array_size e = 1, step = 1; e < D; ++e, step <<= 1) {
@@ -149,7 +149,7 @@ template<typename t_qvalue, int max_qvalue> void CBbSTht<t_qvalue, max_qvalue>::
     }
 }
 
-template<typename t_qvalue, int max_qvalue> t_array_size CBbSTht<t_qvalue, max_qvalue>::rmq(const t_array_size &begIdx, const t_array_size &endIdx) {
+template<typename t_qvalue, int max_qvalue> t_array_size CBbSTx<t_qvalue, max_qvalue>::rmq(const t_array_size &begIdx, const t_array_size &endIdx) {
     if (begIdx == endIdx) {
         return begIdx;
     }
@@ -287,7 +287,7 @@ template<typename t_qvalue, int max_qvalue> t_array_size CBbSTht<t_qvalue, max_q
     return result;
 }
 
-template<typename t_qvalue, int max_qvalue> inline t_array_size CBbSTht<t_qvalue, max_qvalue>::miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
+template<typename t_qvalue, int max_qvalue> inline t_array_size CBbSTx<t_qvalue, max_qvalue>::miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
     t_array_size result = -1;
     const t_array_size begMiniIdx = begIdx >> miniKExp;
     const t_array_size endMiniIdx = endIdx >> miniKExp;
@@ -338,7 +338,7 @@ template<typename t_qvalue, int max_qvalue> inline t_array_size CBbSTht<t_qvalue
     return result;
 }
 
-template<typename t_qvalue, int max_qvalue> void CBbSTht<t_qvalue, max_qvalue>::cleanup() {
+template<typename t_qvalue, int max_qvalue> void CBbSTx<t_qvalue, max_qvalue>::cleanup() {
     delete[] this->blocksRelativeLoc2D;
     delete[] this->baseBlocksValLoc2D;
 #ifdef MINI_BLOCKS
@@ -347,7 +347,7 @@ template<typename t_qvalue, int max_qvalue> void CBbSTht<t_qvalue, max_qvalue>::
 #endif
 }
 
-template<typename t_qvalue, int max_qvalue> size_t CBbSTht<t_qvalue, max_qvalue>::memUsageInBytes() {
+template<typename t_qvalue, int max_qvalue> size_t CBbSTx<t_qvalue, max_qvalue>::memUsageInBytes() {
     size_t bytes = blocksCount * (D - BD) * (sizeof(uint8_t));
     bytes += blocksCount * BD *(sizeof(t_value) + sizeof(t_array_size));
 #ifdef MINI_BLOCKS

@@ -1,5 +1,5 @@
-#ifndef BBST_BBSTQHT_H
-#define BBST_BBSTQHT_H
+#ifndef BBST_CBBSTX_H
+#define BBST_CBBSTX_H
 
 #include <vector>
 #include "common.h"
@@ -8,20 +8,20 @@
 using namespace std;
 
 template<typename t_qvalue, int max_qvalue>
-class CBbSTht {
+class CBbSTx {
 public:
 
 #ifdef MINI_BLOCKS
-    CBbSTht(const vector<t_value> &valuesArray, int kExp, int miniKExp, RMQAPI* secondaryRMQ);
+    CBbSTx(const vector<t_value> &valuesArray, int kExp, int miniKExp, RMQAPI* secondaryRMQ);
 #else
-    CBbSTht(const vector<t_value> &valuesArray, int kExp, RMQAPI* secondaryRMQ);
+    CBbSTx(const vector<t_value> &valuesArray, int kExp, RMQAPI* secondaryRMQ);
 #endif
 
     void rmqBatch(const vector<t_array_size> &queries, t_array_size *resultLoc);
 
     t_array_size rmq(const t_array_size &begIdx, const t_array_size &endIdx);
 
-    virtual ~CBbSTht();
+    virtual ~CBbSTx();
 
     size_t memUsageInBytes();
 
@@ -50,6 +50,6 @@ private:
 
 };
 
-#include "cbbstht.hpp"
+#include "cbbstx.hpp"
 
-#endif //BBST_BBSTQHT_H
+#endif //BBST_CBBSTX_H

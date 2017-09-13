@@ -27,13 +27,13 @@ set(BBST_SOURCE_FILES
 
 set(BBSTHT_SOURCE_FILES
         ${COMMON_SOURCE_FILES}
-        bbstht.cpp
-        bbstht.h)
+        bbstx.cpp
+        bbstx.h)
 
-set(CBBSTHT_SOURCE_FILES
+set(CBBSTX_SOURCE_FILES
         ${COMMON_SOURCE_FILES}
-        cbbstht.h
-        cbbstht.hpp)
+        cbbstx.h
+        cbbstx.hpp)
 
 set(HFERRADA_RMQ_SOURCE_FILES
         RMQRMM64.cpp
@@ -48,16 +48,16 @@ add_executable(bbst2_nb bench/bbst2_nb_test.cpp ${BBST_SOURCE_FILES})
 target_compile_definitions(bbst2_nb PUBLIC "-DMINI_BLOCKS")
 add_executable(bbst2_nb_wc bench/bbst2_nb_test.cpp ${BBST_SOURCE_FILES})
 target_compile_definitions(bbst2_nb_wc PUBLIC "-DMINI_BLOCKS -DWORST_CASE")
-add_executable(bbstht_nb bench/bbstht_nb_test.cpp ${BBSTHT_SOURCE_FILES})
-add_executable(bbst2ht_nb bench/bbst2ht_nb_test.cpp ${BBSTHT_SOURCE_FILES})
-target_compile_definitions(bbst2ht_nb PUBLIC "-DMINI_BLOCKS")
-add_executable(cbbstht_nb bench/cbbstht_nb_test.cpp ${CBBSTHT_SOURCE_FILES})
-add_executable(cbbst2ht_nb bench/cbbst2ht_nb_test.cpp ${CBBSTHT_SOURCE_FILES})
-target_compile_definitions(cbbst2ht_nb PUBLIC "-DMINI_BLOCKS")
-add_executable(bbst-fn_nb bench/bbst-fn_nb_test.cpp ${BBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
-add_executable(cbbst-fn_nb bench/bbst-fn_nb_test.cpp ${CBBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
-target_compile_definitions(cbbst-fn_nb PUBLIC "-DQUANTIZED")
-add_executable(bbst2-fn_nb bench/bbst2-fn_nb_test.cpp ${BBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
-target_compile_definitions(bbst2-fn_nb PUBLIC "-DMINI_BLOCKS")
-add_executable(cbbst2-fn_nb bench/bbst2-fn_nb_test.cpp ${CBBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
-target_compile_definitions(cbbst2-fn_nb PUBLIC "-DMINI_BLOCKS -DQUANTIZED")
+add_executable(bbstx_nb bench/bbstx_nb_test.cpp ${BBSTHT_SOURCE_FILES})
+add_executable(bbst2x_nb bench/bbst2x_nb_test.cpp ${BBSTHT_SOURCE_FILES})
+target_compile_definitions(bbst2x_nb PUBLIC "-DMINI_BLOCKS")
+add_executable(cbbstx_nb bench/cbbstx_nb_test.cpp ${CBBSTX_SOURCE_FILES})
+add_executable(cbbst2x_nb bench/cbbst2x_nb_test.cpp ${CBBSTX_SOURCE_FILES})
+target_compile_definitions(cbbst2x_nb PUBLIC "-DMINI_BLOCKS")
+add_executable(bbst-bp_nb bench/bbst-bp_nb_test.cpp ${BBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
+add_executable(cbbst-bp_nb bench/bbst-bp_nb_test.cpp ${CBBSTX_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
+target_compile_definitions(cbbst-bp_nb PUBLIC "-DQUANTIZED")
+add_executable(bbst2-bp_nb bench/bbst2-bp_nb_test.cpp ${BBSTHT_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
+target_compile_definitions(bbst2-bp_nb PUBLIC "-DMINI_BLOCKS")
+add_executable(cbbst2-bp_nb bench/bbst2-bp_nb_test.cpp ${CBBSTX_SOURCE_FILES} ${HFERRADA_RMQ_SOURCE_FILES})
+target_compile_definitions(cbbst2-bp_nb PUBLIC "-DMINI_BLOCKS -DQUANTIZED")

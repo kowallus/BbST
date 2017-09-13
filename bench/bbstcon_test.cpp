@@ -10,7 +10,7 @@
 
 int main(int argc, char**argv) {
 
-    fstream fout("bbstcon_res.txt", ios::out | ios::binary | ios::app);
+    fstream fout("BbSTcon_res.txt", ios::out | ios::binary | ios::app);
 
     ChronoStopWatch timer;
     bool verbose = true;
