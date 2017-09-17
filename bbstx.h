@@ -43,7 +43,7 @@ private:
     void getBlocksMinsBase(const vector<t_value> &valuesArray);
     void getBlocksSparseTable();
 
-    inline t_array_size miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx);
+    inline t_array_size miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx, t_value &notSmallerThan);
 
     void cleanup();
 

@@ -91,6 +91,10 @@ t_array_size BbSTx::rmq(const t_array_size &begIdx, const t_array_size &endIdx) 
     if (begIdx == endIdx) {
         return begIdx;
     }
+#ifdef MINI_BLOCKS
+    t_value miniNotSmallerThen = MAX_T_VALUE;
+    bool uncertainMini = false;
+#endif
     t_array_size result = -1;
     const t_array_size begCompIdx = begIdx >> kExp;
     const t_array_size endCompIdx = endIdx >> kExp;
@@ -99,7 +103,7 @@ t_array_size BbSTx::rmq(const t_array_size &begIdx, const t_array_size &endIdx) 
         if (begIdx <= firstBlockMinLoc && firstBlockMinLoc <= endIdx)
             return firstBlockMinLoc;
 #ifdef MINI_BLOCKS
-        t_array_size minIdx = miniScanMinIdx(begIdx, endIdx);
+        t_array_size minIdx = miniScanMinIdx(begIdx, endIdx, miniNotSmallerThen);
         if (minIdx == MAX_T_ARRAYSIZE) {
                 return secondaryRMQ->rmq(begIdx, endIdx);
         }
@@ -131,14 +135,18 @@ t_array_size BbSTx::rmq(const t_array_size &begIdx, const t_array_size &endIdx) 
             result = firstBlockMinLoc;
         } else {
 #ifdef MINI_BLOCKS
-            t_array_size minIdx = miniScanMinIdx(begIdx, ((begCompIdx + 1) << kExp) - 1);
+            t_array_size minIdx = miniScanMinIdx(begIdx, ((begCompIdx + 1) << kExp) - 1, miniNotSmallerThen);
             if (minIdx == MAX_T_ARRAYSIZE) {
-                return secondaryRMQ->rmq(begIdx, endIdx);
-            }
-            t_value tempVal = miniBlocksVal[minIdx >> miniKExp];
-            if (tempVal <= minVal) {
-                minVal = tempVal;
-                result = minIdx;
+                if (miniNotSmallerThen <= minVal) {
+                    uncertainMini = true;
+                    minVal = miniNotSmallerThen;
+                }
+            } else {
+                t_value tempVal = miniBlocksVal[minIdx >> miniKExp];
+                if (tempVal <= minVal) {
+                    minVal = tempVal;
+                    result = minIdx;
+                }
             }
 #else
             return secondaryRMQ->rmq(begIdx, endIdx);
@@ -148,14 +156,18 @@ t_array_size BbSTx::rmq(const t_array_size &begIdx, const t_array_size &endIdx) 
     if (blocksVal2D[endCompIdx] < minVal) {
         t_array_size lastBlockMinLoc = blocksLoc2D[endCompIdx];
         if (lastBlockMinLoc <= endIdx) {
+#ifdef MINI_BLOCKS
+            uncertainMini = false;
+#endif
             result = lastBlockMinLoc;
         } else {
 #ifdef MINI_BLOCKS
-            t_array_size minIdx = miniScanMinIdx(endCompIdx << kExp, endIdx);
+            t_array_size minIdx = miniScanMinIdx(endCompIdx << kExp, endIdx, miniNotSmallerThen);
             if (minIdx == MAX_T_ARRAYSIZE) {
-                return secondaryRMQ->rmq(begIdx, endIdx);
-            }
-            if (miniBlocksVal[minIdx >> miniKExp] < minVal) {
+                if (miniNotSmallerThen <= minVal)
+                    return secondaryRMQ->rmq(begIdx, endIdx);
+            } else if (miniBlocksVal[minIdx >> miniKExp] < minVal) {
+                uncertainMini = false;
                 result = minIdx;
             }
 #else
@@ -163,11 +175,14 @@ t_array_size BbSTx::rmq(const t_array_size &begIdx, const t_array_size &endIdx) 
 #endif
         }
     }
-
+#ifdef MINI_BLOCKS
+    if (uncertainMini)
+        return secondaryRMQ->rmq(begIdx, endIdx);
+#endif
     return result;
 }
 
-inline t_array_size BbSTx::miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
+inline t_array_size BbSTx::miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx, t_value &notSmallerThan) {
     t_array_size result = -1;
     const t_array_size begMiniIdx = begIdx >> miniKExp;
     const t_array_size endMiniIdx = endIdx >> miniKExp;
@@ -175,6 +190,7 @@ inline t_array_size BbSTx::miniScanMinIdx(const t_array_size &begIdx, const t_ar
         const t_array_size firstMiniBlockMinLoc = (begMiniIdx << miniKExp) + miniBlocksLoc[begMiniIdx];
         if (begIdx <= firstMiniBlockMinLoc && firstMiniBlockMinLoc <= endIdx)
             return firstMiniBlockMinLoc;
+        notSmallerThan = miniBlocksVal[begMiniIdx];
         return MAX_T_ARRAYSIZE;
     }
     t_value minVal = MAX_T_VALUE;
@@ -195,6 +211,7 @@ inline t_array_size BbSTx::miniScanMinIdx(const t_array_size &begIdx, const t_ar
             minVal = tempVal;
             result = firstMiniBlockMinLoc;
         } else {
+            notSmallerThan = miniBlocksVal[endMiniIdx]<tempVal?miniBlocksVal[endMiniIdx]:tempVal;
             return MAX_T_ARRAYSIZE;
         }
     }
@@ -204,6 +221,7 @@ inline t_array_size BbSTx::miniScanMinIdx(const t_array_size &begIdx, const t_ar
         if (lastBlockMinLoc <= endIdx) {
             result = lastBlockMinLoc;
         } else {
+            notSmallerThan = tempVal;
             return MAX_T_ARRAYSIZE;
         }
     }

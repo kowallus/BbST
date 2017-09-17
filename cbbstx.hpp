@@ -153,6 +153,9 @@ template<typename t_qvalue, int max_qvalue> t_array_size CBbSTx<t_qvalue, max_qv
     if (begIdx == endIdx) {
         return begIdx;
     }
+#ifdef MINI_BLOCKS
+    t_qvalue qMiniNotSmallerThen = max_qvalue;
+#endif
     t_array_size result = -1;
     const t_array_size begCompIdx = begIdx >> kExp;
     const t_array_size endCompIdx = endIdx >> kExp;
@@ -163,7 +166,7 @@ template<typename t_qvalue, int max_qvalue> t_array_size CBbSTx<t_qvalue, max_qv
         if (begIdx <= firstBlockMinLoc && firstBlockMinLoc <= endIdx)
             return firstBlockMinLoc;
 #ifdef MINI_BLOCKS
-        t_array_size minIdx = miniScanMinIdx(begIdx, endIdx);
+        t_array_size minIdx = miniScanMinIdx(begIdx, endIdx, qMiniNotSmallerThen);
         if (minIdx == MAX_T_ARRAYSIZE) {
             return secondaryRMQ->rmq(begIdx, endIdx);
         }
@@ -199,9 +202,11 @@ template<typename t_qvalue, int max_qvalue> t_array_size CBbSTx<t_qvalue, max_qv
         }
     }
 
+#ifdef MINI_BLOCKS
     bool quantizedMode = false;
     bool uncertainResult = false;
     uint8_t minQVal = max_qvalue;
+#endif
     if (begIdx != (begCompIdx + 1) << kExp) {
         t_value *valLocPtr = (t_value *) (baseBlocksValLoc2D + VALUE_AND_LOCATION_BYTES * begCompIdx);
         if (*valLocPtr <= minVal) {
@@ -211,19 +216,24 @@ template<typename t_qvalue, int max_qvalue> t_array_size CBbSTx<t_qvalue, max_qv
                 result = firstBlockMinLoc;
             } else {
 #ifdef MINI_BLOCKS
-                t_array_size minIdx = miniScanMinIdx(begIdx, ((begCompIdx + 1) << kExp) - 1);
-                if (minIdx == MAX_T_ARRAYSIZE) {
-                    return secondaryRMQ->rmq(begIdx, endIdx);
-                }
-                t_value tempQVal = miniBlocksQVal[minIdx >> miniKExp];
+                t_array_size minIdx = miniScanMinIdx(begIdx, ((begCompIdx + 1) << kExp) - 1, qMiniNotSmallerThen);
                 minQVal = quantizeValue(minVal);
-                if (tempQVal < minQVal) {
-                    quantizedMode = true;
-                    minQVal = tempQVal;
-                    result = minIdx;
-                } else if (tempQVal == minQVal) {
+                if (minIdx == MAX_T_ARRAYSIZE) {
+                    if (qMiniNotSmallerThen <= minQVal) {
                         quantizedMode = true;
                         uncertainResult = true;
+                        minQVal = qMiniNotSmallerThen;
+                    }
+                } else {
+                    t_value tempQVal = miniBlocksQVal[minIdx >> miniKExp];
+                    if (tempQVal < minQVal) {
+                        quantizedMode = true;
+                        minQVal = tempQVal;
+                        result = minIdx;
+                    } else if (tempQVal == minQVal) {
+                        quantizedMode = true;
+                        uncertainResult = true;
+                    }
                 }
 #else
                 return secondaryRMQ->rmq(begIdx, endIdx);
@@ -232,7 +242,9 @@ template<typename t_qvalue, int max_qvalue> t_array_size CBbSTx<t_qvalue, max_qv
         }
     }
     t_value *valLocPtr = (t_value *) (baseBlocksValLoc2D + VALUE_AND_LOCATION_BYTES * endCompIdx);
+#ifdef MINI_BLOCKS
     if (!quantizedMode) {
+#endif
         if (*valLocPtr < minVal) {
             t_array_size lastBlockMinLoc = *((t_array_size *) (valLocPtr + 1));
             if (lastBlockMinLoc <= endIdx)
@@ -244,50 +256,46 @@ template<typename t_qvalue, int max_qvalue> t_array_size CBbSTx<t_qvalue, max_qv
             return secondaryRMQ->rmq(begIdx, endIdx);
 #endif
         }
+#ifdef MINI_BLOCKS
     }
     if (quantizedMode) {
         t_qvalue tempQVal = quantizeValue(*valLocPtr);
         if (tempQVal == minQVal) {
-    #ifdef MINI_BLOCKS
             if (*((t_array_size *) (valLocPtr + 1)) <= endIdx) {
                 return secondaryRMQ->rmq(begIdx, endIdx);
             } else {
-                t_array_size minIdx = miniScanMinIdx(endCompIdx << kExp, endIdx);
-                if (minIdx == MAX_T_ARRAYSIZE || miniBlocksQVal[minIdx >> miniKExp] == minQVal) {
+                t_array_size minIdx = miniScanMinIdx(endCompIdx << kExp, endIdx, qMiniNotSmallerThen);
+                if ((minIdx == MAX_T_ARRAYSIZE && qMiniNotSmallerThen == minQVal) || (minIdx != MAX_T_ARRAYSIZE && miniBlocksQVal[minIdx >> miniKExp] == minQVal)) {
                     return secondaryRMQ->rmq(begIdx, endIdx);
                 }
             }
-    #else
-            return secondaryRMQ->rmq(begIdx, endIdx);
-    #endif
         } else if (tempQVal < minQVal) {
             t_array_size lastBlockMinLoc = *((t_array_size *) (valLocPtr + 1));
             if (lastBlockMinLoc <= endIdx) {
                 return lastBlockMinLoc;
             } else {
-    #ifdef MINI_BLOCKS
-                t_array_size minIdx = miniScanMinIdx(endCompIdx << kExp, endIdx);
+                t_array_size minIdx = miniScanMinIdx(endCompIdx << kExp, endIdx, qMiniNotSmallerThen);
                 if (minIdx == MAX_T_ARRAYSIZE) {
-                    return secondaryRMQ->rmq(begIdx, endIdx);
+                    if (qMiniNotSmallerThen <= minQVal)
+                        return secondaryRMQ->rmq(begIdx, endIdx);
+                } else {
+                    if (miniBlocksQVal[minIdx >> miniKExp] < minQVal) {
+                        return minIdx;
+                    } else if (miniBlocksQVal[minIdx >> miniKExp] == minQVal) {
+                        return secondaryRMQ->rmq(begIdx, endIdx);
+                    }
                 }
-                if (miniBlocksQVal[minIdx >> miniKExp] < minQVal) {
-                    return minIdx;
-                } else if (miniBlocksQVal[minIdx >> miniKExp] == minQVal) {
-                    return secondaryRMQ->rmq(begIdx, endIdx);
-                }
-    #else
-                return secondaryRMQ->rmq(begIdx, endIdx);
-    #endif
             }
         }
         if (uncertainResult) {
             return secondaryRMQ->rmq(begIdx, endIdx);
         }
     }
+#endif
     return result;
 }
 
-template<typename t_qvalue, int max_qvalue> inline t_array_size CBbSTx<t_qvalue, max_qvalue>::miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
+template<typename t_qvalue, int max_qvalue> inline t_array_size CBbSTx<t_qvalue, max_qvalue>::miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx, t_qvalue &qNotSmallerThan) {
     t_array_size result = -1;
     const t_array_size begMiniIdx = begIdx >> miniKExp;
     const t_array_size endMiniIdx = endIdx >> miniKExp;
@@ -295,6 +303,7 @@ template<typename t_qvalue, int max_qvalue> inline t_array_size CBbSTx<t_qvalue,
         const t_array_size firstMiniBlockMinLoc = (begMiniIdx << miniKExp) + miniBlocksLoc[begMiniIdx];
         if (begIdx <= firstMiniBlockMinLoc && firstMiniBlockMinLoc <= endIdx)
             return firstMiniBlockMinLoc;
+        qNotSmallerThan = miniBlocksQVal[begMiniIdx];
         return MAX_T_ARRAYSIZE;
     }
 
@@ -322,18 +331,24 @@ template<typename t_qvalue, int max_qvalue> inline t_array_size CBbSTx<t_qvalue,
     }
 
     tempQVal =  miniBlocksQVal[endMiniIdx];
-    if (tempQVal == minQVal)
+    if (tempQVal == minQVal) {
+        qNotSmallerThan = miniBlocksQVal[begMiniIdx]<tempQVal?:tempQVal;
         return MAX_T_ARRAYSIZE;
+    }
     if (tempQVal < minQVal) {
         t_array_size lastBlockMinLoc = (endMiniIdx << miniKExp) + miniBlocksLoc[endMiniIdx];
         if (lastBlockMinLoc <= endIdx) {
             return lastBlockMinLoc;
         } else {
+            qNotSmallerThan = tempQVal;
             return MAX_T_ARRAYSIZE;
         }
+        minQVal = tempQVal;
     }
-    if (uncertainResult)
+    if (uncertainResult) {
+        qNotSmallerThan = minQVal;
         return MAX_T_ARRAYSIZE;
+    }
 
     return result;
 }

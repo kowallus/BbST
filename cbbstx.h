@@ -44,7 +44,7 @@ private:
     void prepareBlocksSparseTable(vector<t_value> &tempBlocksVal, vector<t_array_size> &tempBlocksLoc);
     inline t_qvalue quantizeValue(const t_value value);
 
-    inline t_array_size miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx);
+    inline t_array_size miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx, t_qvalue &qNotSmallerThan);
 
     void cleanup();
 
