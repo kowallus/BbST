@@ -126,7 +126,7 @@ int main(int argc, char**argv) {
     timer.startTimer();
     FNRMQBP fnRMQBP(&valuesArray[0], valuesArray.size());
 #ifdef QUANTIZED
-    CBbSTht<uint8_t, 255> solver(valuesArray, kExp, miniKExp, &fnRMQBP);
+    CBbSTx<uint8_t, 255> solver(valuesArray, kExp, miniKExp, &fnRMQBP);
 #else
     BbSTx solver(valuesArray, kExp, miniKExp, &fnRMQBP);
 #endif
