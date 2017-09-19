@@ -3,7 +3,7 @@
 
 #include "../utils/testdata.h"
 #include "../utils/timer.h"
-#include "../includes/RMQRMM64.h"
+#include "../includes/sdsl/rmq_succinct_bp_fast.hpp"
 #ifdef QUANTIZED
 #include "../cbbstx.h"
 #else
@@ -12,15 +12,19 @@
 #include <unistd.h>
 #include <omp.h>
 
-using namespace rmqrmm;
-
 class CompetitorRMQ: public RMQAPI {
 private:
-    RMQRMM64 *rmqImpl;
+    typedef sdsl::rmq_succinct_bp_fast<> rmqStruct;
+    rmqStruct *rmqImpl;
 public:
 
     CompetitorRMQ(const t_value* valuesArray, const t_array_size n) {
-        rmqImpl = new RMQRMM64((t_value*) valuesArray, n);
+        typedef sdsl::int_vector<32> int_vector;
+        int_vector intVector(n);
+        for (t_array_size i = 0; i < n; i++) {
+            intVector[i] = (uint32_t)((int64_t) valuesArray[i]) - INT32_MIN;
+        }
+        rmqImpl = new rmqStruct(&intVector);
     }
 
     ~CompetitorRMQ() {
@@ -28,15 +32,15 @@ public:
     }
 
     t_array_size rmq(const t_array_size &begIdx, const t_array_size &endIdx) {
-        return rmqImpl->queryRMQ(begIdx, endIdx);
+        return rmqImpl->operator()(begIdx, endIdx);
     }
 
     size_t memUsageInBytes() {
-        return rmqImpl->getSize();
+        return sdsl::size_in_bytes(*rmqImpl);
     }
 };
 
-string rmqName = "BbST2-BP";
+string rmqName = "BbST-sdsl-BP";
 
 int main(int argc, char**argv) {
 
@@ -50,13 +54,12 @@ int main(int argc, char**argv) {
     bool verbose = true;
     bool verification = false;
     int kExp = 14;
-    int miniKExp = 7;
     int noOfThreads = 1;
     int opt; // current option
     int repeats = 1;
     t_array_size max_range = 0;
 
-    while ((opt = getopt(argc, argv, "k:l:t:r:m:vq?")) != -1) {
+    while ((opt = getopt(argc, argv, "k:t:r:m:vq?")) != -1) {
         switch (opt) {
             case 'q':
                 verbose = false;
@@ -66,16 +69,8 @@ int main(int argc, char**argv) {
                 break;
             case 'k':
                 kExp = atoi(optarg);
-                if (kExp < 1 || kExp > 24) {
-                    fprintf(stderr, "%s: Expected 24>=k>=1\n", argv[0]);
-                    fprintf(stderr, "try '%s -?' for more information\n", argv[0]);
-                    exit(EXIT_FAILURE);
-                }
-                break;
-            case 'l':
-                miniKExp = atoi(optarg);
-                if (miniKExp < 0 || miniKExp > 8) {
-                    fprintf(stderr, "%s: Expected 8>=l>=0\n", argv[0]);
+                if (kExp < 0 || kExp > 24) {
+                    fprintf(stderr, "%s: Expected 24>=k>=0\n", argv[0]);
                     fprintf(stderr, "try '%s -?' for more information\n", argv[0]);
                     exit(EXIT_FAILURE);
                 }
@@ -106,9 +101,9 @@ int main(int argc, char**argv) {
                 break;
             case '?':
             default: /* '?' */
-                fprintf(stderr, "Usage: %s [-k block size power of 2 exponent] [-l miniblock size power of 2 exponent] [-t noOfThreads] [-v] [-q] n q\n\n",
+                fprintf(stderr, "Usage: %s [-k block size power of 2 exponent] [-t noOfThreads] [-v] [-q] n q\n\n",
                         argv[0]);
-                fprintf(stderr, "-k [24>=k>=1] \n-l [8>=l>=0] \n-t [noOfThreads>=1] \n-v verify results (extremely slow)\n-q quiet output (only parameters)\n\n");
+                fprintf(stderr, "-k [24>=k>=0] \n-t [noOfThreads>=1] \n-v verify results (extremely slow)\n-q quiet output (only parameters)\n\n");
                 exit(EXIT_FAILURE);
         }
     }
@@ -116,12 +111,6 @@ int main(int argc, char**argv) {
     if (optind > (argc - 2)) {
         fprintf(stderr, "%s: Expected 2 arguments after options (found %d)\n", argv[0], argc-optind);
         fprintf(stderr, "try '%s -?' for more information\n", argv[0]);
-
-        exit(EXIT_FAILURE);
-    }
-
-    if (kExp <= miniKExp) {
-        fprintf(stderr, "%s: k block size must be greater then miniblock size (k=%d, l=%d) \n", argv[0], kExp, miniKExp);
 
         exit(EXIT_FAILURE);
     }
@@ -152,10 +141,11 @@ int main(int argc, char**argv) {
     timer.startTimer();
     CompetitorRMQ rmqIdx(&valuesArray[0], valuesArray.size());
 #ifdef QUANTIZED
-    CBbSTx<uint8_t, 255> solver(valuesArray, kExp, miniKExp, &rmqIdx);
+    CBbSTx<uint8_t, 255> solver(valuesArray, kExp, &rmqIdx);
 #else
-    BbSTx solver(valuesArray, kExp, miniKExp, &rmqIdx);
+    BbSTx solver(valuesArray, kExp, &rmqIdx);
 #endif
+
     timer.stopTimer();
     double buildTime = timer.getElapsedTime();
     if (verbose) cout << "Solving... " << std::endl;
@@ -174,12 +164,12 @@ int main(int argc, char**argv) {
     double maxQueryTime = times[repeats - 1] * nanoqcoef ;
     double medianQueryTime = times[times.size()/2] * nanoqcoef;
     double minQueryTime = times[0] * nanoqcoef;
-    if (verbose) cout << "query time [ns]; n; q; m; size [KB]; k; miniK; noOfThreads; BbST build time [s]; max/min time [ns]" << std::endl;
+    if (verbose) cout << "query time [ns]; n; q; m; size [KB]; k; noOfThreads; BbST build time [s]; max/min time [ns]" << std::endl;
     cout << medianQueryTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) << "\t" << max_range
-         << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << (1 << miniKExp) << "\t" << noOfThreads
+         << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads
          << "\t" << buildTime << "\t" << maxQueryTime << "\t" << minQueryTime << "\t" << std::endl;
     fout << medianQueryTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) << "\t" << max_range <<
-         "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << (1 << miniKExp) << "\t" << noOfThreads <<
+         "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads <<
          "\t" << buildTime << "\t" << maxQueryTime << "\t" << minQueryTime << "\t" << std::endl;
     if (verification) verify(valuesArray, queries, resultLoc);
 

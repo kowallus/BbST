@@ -3,7 +3,7 @@
 
 #include "../utils/testdata.h"
 #include "../utils/timer.h"
-#include "../includes/RMQRMM64.h"
+#include "../includes/sdsl/rmq_succinct_bp_fast.hpp"
 #ifdef QUANTIZED
 #include "../cbbstx.h"
 #else
@@ -12,15 +12,19 @@
 #include <unistd.h>
 #include <omp.h>
 
-using namespace rmqrmm;
-
 class CompetitorRMQ: public RMQAPI {
 private:
-    RMQRMM64 *rmqImpl;
+    typedef sdsl::rmq_succinct_bp_fast<> rmqStruct;
+    rmqStruct *rmqImpl;
 public:
 
     CompetitorRMQ(const t_value* valuesArray, const t_array_size n) {
-        rmqImpl = new RMQRMM64((t_value*) valuesArray, n);
+        typedef sdsl::int_vector<32> int_vector;
+        int_vector intVector(n);
+        for (t_array_size i = 0; i < n; i++) {
+            intVector[i] = (uint32_t)((int64_t) valuesArray[i]) - INT32_MIN;
+        }
+        rmqImpl = new rmqStruct(&intVector);
     }
 
     ~CompetitorRMQ() {
@@ -28,15 +32,15 @@ public:
     }
 
     t_array_size rmq(const t_array_size &begIdx, const t_array_size &endIdx) {
-        return rmqImpl->queryRMQ(begIdx, endIdx);
+        return rmqImpl->operator()(begIdx, endIdx);
     }
 
     size_t memUsageInBytes() {
-        return rmqImpl->getSize();
+        return sdsl::size_in_bytes(*rmqImpl);
     }
 };
 
-string rmqName = "BbST2-BP";
+string rmqName = "BbST2-sdsl-BP";
 
 int main(int argc, char**argv) {
 

@@ -3,6 +3,7 @@
 
 #include "../utils/testdata.h"
 #include "../utils/timer.h"
+#include "../includes/RMQRMM64.h"
 #ifdef QUANTIZED
 #include "../cbbstx.h"
 #else
@@ -11,12 +12,37 @@
 #include <unistd.h>
 #include <omp.h>
 
+class CompetitorRMQ: public RMQAPI {
+private:
+    RMQRMM64 *rmqImpl;
+public:
+
+    CompetitorRMQ(const t_value* valuesArray, const t_array_size n) {
+        rmqImpl = new RMQRMM64((t_value*) valuesArray, n);
+    }
+
+    ~CompetitorRMQ() {
+        delete rmqImpl;
+    }
+
+    t_array_size rmq(const t_array_size &begIdx, const t_array_size &endIdx) {
+        return rmqImpl->queryRMQ(begIdx, endIdx);
+    }
+
+    size_t memUsageInBytes() {
+        return rmqImpl->getSize();
+    }
+};
+
+string rmqName = "BbST-BP";
+
 int main(int argc, char**argv) {
 
 #ifdef QUANTIZED
-    fstream fout("cBbST-BP_nb_res.txt", ios::out | ios::binary | ios::app);
+    rmqName = string("c") + rmqName;
+    fstream fout(rmqName + "_nb_res.txt", ios::out | ios::binary | ios::app);
 #else
-    fstream fout("BbST-BP_nb_res.txt", ios::out | ios::binary | ios::app);
+    fstream fout(rmqName + "_nb_res.txt", ios::out | ios::binary | ios::app);
 #endif
     ChronoStopWatch timer;
     bool verbose = true;
@@ -105,13 +131,13 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
-    if (verbose) cout << "Building BbST-FN... " << std::endl;
+    if (verbose) cout << "Building "<< rmqName << "... " << std::endl;
     timer.startTimer();
-    FNRMQBP fnRMQBP(&valuesArray[0], valuesArray.size());
+    CompetitorRMQ rmqIdx(&valuesArray[0], valuesArray.size());
 #ifdef QUANTIZED
-    CBbSTx<uint8_t, 255> solver(valuesArray, kExp, &fnRMQBP);
+    CBbSTx<uint8_t, 255> solver(valuesArray, kExp, &rmqIdx);
 #else
-    BbSTx solver(valuesArray, kExp, &fnRMQBP);
+    BbSTx solver(valuesArray, kExp, &rmqIdx);
 #endif
 
     timer.stopTimer();
