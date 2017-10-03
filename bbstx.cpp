@@ -94,7 +94,7 @@ t_array_size BbSTx::rmq(const t_array_size &begIdx, const t_array_size &endIdx) 
     t_array_size result = MAX_T_ARRAYSIZE;
     const t_array_size begCompIdx = begIdx >> kExp;
     const t_array_size endCompIdx = endIdx >> kExp;
-/* OPTIMIZATION FOR NARROW RANGES
+#ifdef START_FROM_NARROW_RANGES
     if (endCompIdx == begCompIdx) {
         const t_array_size result = blocksLoc2D[begCompIdx];
         if (begIdx <= result && result <= endIdx)
@@ -110,7 +110,7 @@ t_array_size BbSTx::rmq(const t_array_size &begIdx, const t_array_size &endIdx) 
         return minIdx;
 #endif
     }
-*/
+#endif
     const t_array_size kBlockCount = endCompIdx - begCompIdx; // actual kBlock count is +1
     const t_array_size e = kBlockCount?(31 - __builtin_clz(kBlockCount)):0;
     const t_array_size step = 1 << e;
@@ -127,8 +127,6 @@ t_array_size BbSTx::rmq(const t_array_size &begIdx, const t_array_size &endIdx) 
     t_value miniNotSmallerThen = MAX_T_VALUE;
     if (kBlockCount <= 1) {
         const t_array_size minIdx = miniScanMinIdx(begIdx, endIdx, miniNotSmallerThen);
-//        cout << "(" << begIdx << ", " << endIdx << ") " << minIdx << " " << miniNotSmallerThen << endl;
-
         if (minIdx == MAX_T_ARRAYSIZE)
             return secondaryRMQ->rmq(begIdx, endIdx);
         return minIdx;
