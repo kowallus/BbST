@@ -9,7 +9,7 @@
 
 int main(int argc, char**argv) {
 
-    fstream fout("bbst2_nb_res.txt", ios::out | ios::binary | ios::app);
+    fstream fout("BbST2_nb_res.txt", ios::out | ios::binary | ios::app);
 
     ChronoStopWatch timer;
     bool verbose = true;
@@ -113,7 +113,7 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
-    if (verbose) cout << "Building BbST... " << std::endl;
+    if (verbose) cout << "Building BbST2... " << std::endl;
     timer.startTimer();
     BbST solver(&valuesArray[0], valuesArray.size(), kExp, miniKExp);
     timer.stopTimer();
