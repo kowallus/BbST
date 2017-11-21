@@ -40,9 +40,9 @@ private:
     void getBlocksMinsBase();
     void getBlocksSparseTable();
 
-    t_array_size scanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx);
-    inline t_array_size rawScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx);
-    inline t_array_size miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx);
+    t_array_size scanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx, t_value& smallerThanVal, bool orEqual);
+    inline t_array_size rawScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx, t_value& smallerThanVal, bool orEqual);
+    inline t_array_size miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx, t_value& smallerThanVal, bool orEqual);
 
     bool batchMode = false;
     void cleanup();

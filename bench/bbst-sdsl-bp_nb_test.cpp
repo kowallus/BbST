@@ -3,15 +3,53 @@
 
 #include "../utils/testdata.h"
 #include "../utils/timer.h"
-#include "../bbst.h"
-
+#include "../includes/sdsl/rmq_succinct_bp_fast.hpp"
+#ifdef QUANTIZED
+#include "../cbbstx.h"
+#else
+#include "../bbstx.h"
+#endif
 #include <unistd.h>
 #include <omp.h>
 
+class CompetitorRMQ: public RMQAPI {
+private:
+    typedef sdsl::rmq_succinct_bp_fast<> rmqStruct;
+    rmqStruct *rmqImpl;
+public:
+
+    CompetitorRMQ(const t_value* valuesArray, const t_array_size n) {
+        typedef sdsl::int_vector<32> int_vector;
+        int_vector intVector(n);
+        for (t_array_size i = 0; i < n; i++) {
+            intVector[i] = (uint32_t)((int64_t) valuesArray[i]) - INT32_MIN;
+        }
+        rmqImpl = new rmqStruct(&intVector);
+    }
+
+    ~CompetitorRMQ() {
+        delete rmqImpl;
+    }
+
+    t_array_size rmq(const t_array_size &begIdx, const t_array_size &endIdx) {
+        return rmqImpl->operator()(begIdx, endIdx);
+    }
+
+    size_t memUsageInBytes() {
+        return sdsl::size_in_bytes(*rmqImpl);
+    }
+};
+
+string rmqName = "BbST-sdsl-BP";
+
 int main(int argc, char**argv) {
 
-    fstream fout("BbST_res.txt", ios::out | ios::binary | ios::app);
-
+#ifdef QUANTIZED
+    rmqName = string("c") + rmqName;
+    fstream fout(rmqName + "_nb_res.txt", ios::out | ios::binary | ios::app);
+#else
+    fstream fout(rmqName + "_nb_res.txt", ios::out | ios::binary | ios::app);
+#endif
     ChronoStopWatch timer;
     bool verbose = true;
     bool verification = false;
@@ -99,32 +137,42 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
-    BbST solver(kExp);
+    if (verbose) cout << "Building "<< rmqName << "... " << std::endl;
+    timer.startTimer();
+    CompetitorRMQ rmqIdx(&valuesArray[0], valuesArray.size());
+#ifdef QUANTIZED
+    CBbSTx<uint8_t, 255> solver(valuesArray, kExp, &rmqIdx);
+#else
+    BbSTx solver(valuesArray, kExp, &rmqIdx);
+#endif
 
+    timer.stopTimer();
+    double buildTime = timer.getElapsedTime();
     if (verbose) cout << "Solving... " << std::endl;
+
     omp_set_num_threads(noOfThreads);
     vector<double> times;
     for(int i = 0; i < repeats; i++) {
         cleanCache();
         timer.startTimer();
-        solver.rmqBatch(&valuesArray[0], valuesArray.size(), queries, resultLoc);
+        solver.rmqBatch(queries, resultLoc);
         timer.stopTimer();
         times.push_back(timer.getElapsedTime());
     }
     std::sort(times.begin(), times.end());
-    double medianTime = times[times.size()/2];
-    if (verbose) cout << "elapsed time [s]; n; q; m; size [KB]; k; noOfThreads; max/min time [s]" << std::endl;
-    cout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) << "\t" << max_range
-            << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads
-            << "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
-    fout << medianTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) << "\t" << max_range <<
-        "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads <<
-        "\t" << times[repeats - 1] << "\t" << times[0] << "\t" << std::endl;
+    double nanoqcoef = 1000000000.0 / q;
+    double maxQueryTime = times[repeats - 1] * nanoqcoef ;
+    double medianQueryTime = times[times.size()/2] * nanoqcoef;
+    double minQueryTime = times[0] * nanoqcoef;
+    if (verbose) cout << "query time [ns]; n; q; m; size [KB]; k; noOfThreads; BbST build time [s]; max/min time [ns]" << std::endl;
+    cout << medianQueryTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) << "\t" << max_range
+         << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads
+         << "\t" << buildTime << "\t" << maxQueryTime << "\t" << minQueryTime << "\t" << std::endl;
+    fout << medianQueryTime << "\t" << valuesArray.size() << "\t" << (queries.size() / 2) << "\t" << max_range <<
+         "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads <<
+         "\t" << buildTime << "\t" << maxQueryTime << "\t" << minQueryTime << "\t" << std::endl;
     if (verification) verify(valuesArray, queries, resultLoc);
 
     if (verbose) cout << "The end..." << std::endl;
     return 0;
 }
-
-
-

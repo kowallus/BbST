@@ -106,147 +106,162 @@ void BbST::getBlocksSparseTable() {
 }
 
 t_array_size BbST::rmq(const t_array_size &begIdx, const t_array_size &endIdx) {
-    if (begIdx == endIdx)
+    if (begIdx == endIdx) {
         return begIdx;
-    t_array_size result = -1;
+    }
+    t_array_size result = MAX_T_ARRAYSIZE;
     const t_array_size begCompIdx = begIdx >> kExp;
     const t_array_size endCompIdx = endIdx >> kExp;
-    const t_array_size firstBlockMinLoc = blocksLoc2D[begCompIdx];
+#ifdef START_FROM_NARROW_RANGES
     if (endCompIdx == begCompIdx) {
-        if (begIdx <= firstBlockMinLoc && firstBlockMinLoc <= endIdx)
-            return firstBlockMinLoc;
-        return scanMinIdx(begIdx, endIdx);
-    }
-    t_value minVal = MAX_T_VALUE;
-    if (endCompIdx - begCompIdx > 1) {
-        t_array_size kBlockCount = endCompIdx - begCompIdx - 1;
-        t_array_size e = 31 - __builtin_clz(kBlockCount);
-        t_array_size step = 1 << e;
-        minVal = blocksVal2D[(begCompIdx + 1) + e * blocksCount];
-        result = blocksLoc2D[(begCompIdx + 1) + e * blocksCount];
-        t_array_size endShiftCompIdx = endCompIdx - step;
-        if (endShiftCompIdx != begCompIdx + 1) {
-            t_value temp = blocksVal2D[(endShiftCompIdx) + e * blocksCount];
-            if (temp < minVal) {
-                minVal = temp;
-                result = blocksLoc2D[(endShiftCompIdx) + e * blocksCount];
-            }
-        }
-    }
-#ifndef WORST_CASE
-    if (blocksVal2D[begCompIdx] <= minVal && begIdx != (begCompIdx + 1) << kExp) {
-        if (firstBlockMinLoc >= begIdx) {
-            minVal = blocksVal2D[begCompIdx];
-            result = firstBlockMinLoc;
-        } else {
-            t_array_size minIdx = scanMinIdx(begIdx, ((begCompIdx + 1) << kExp) - 1);
-            if (valuesArray[minIdx] <= minVal) {
-                minVal = valuesArray[minIdx];
-                result = minIdx;
-            }
-        }
-    }
-    if (blocksVal2D[endCompIdx] < minVal) {
-        t_array_size lastBlockMinLoc = blocksLoc2D[endCompIdx];
-        if (lastBlockMinLoc <= endIdx) {
-            result = lastBlockMinLoc;
-        } else {
-            t_array_size minIdx = scanMinIdx(endCompIdx << kExp, endIdx);
-            if (valuesArray[minIdx] < minVal) {
-                result = minIdx;
-            }
-        }
-    }
-#else
-    t_array_size minIdx = scanMinIdx(begIdx, ((begCompIdx + 1) << kExp) - 1);
-    if (valuesArray[minIdx] <= minVal) {
-        minVal = valuesArray[minIdx];
-        result = minIdx;
-    }
-    minIdx = scanMinIdx(endCompIdx << kExp, endIdx);
-    if (valuesArray[minIdx] < minVal) {
-        result = minIdx;
+        const t_array_size result = blocksLoc2D[begCompIdx];
+        if (begIdx <= result && result <= endIdx)
+            return result;
+        t_value minVal = MAX_T_VALUE;
+        return scanMinIdx(begIdx, endIdx, miniSmallerThen, true);
     }
 #endif
+    const t_array_size kBlockCount = endCompIdx - begCompIdx; // actual kBlock count is +1
+    const t_array_size e = kBlockCount?(31 - __builtin_clz(kBlockCount)):0;
+    const t_array_size step = 1 << e;
+    const t_array_size endShiftCompIdx = endCompIdx - step + 1;
+    t_value leftMin = blocksVal2D[begCompIdx + e * blocksCount];
+    t_value rightMin = blocksVal2D[endShiftCompIdx + e * blocksCount];
+    bool minOnTheLeft = leftMin <= rightMin;
+    result = blocksLoc2D[(minOnTheLeft?begCompIdx:endShiftCompIdx) + e * blocksCount];
+#ifndef WORST_CASE
+    if (begIdx <= result && result <= endIdx)
+        return result;
+#endif
+    t_value minVal = MAX_T_VALUE;
+    if (kBlockCount <= 1) {
+        return scanMinIdx(begIdx, endIdx, minVal, true);
+    }
+#ifndef WORST_CASE
+    result = blocksLoc2D[begCompIdx + e * blocksCount];
+    if (result >= begIdx) {
+        minVal = leftMin;
+    } else
+#endif
+    {
+        const t_array_size inner2DbegIdx = begCompIdx + 1 + (e - (step == kBlockCount)) * blocksCount;
+        minVal = blocksVal2D[inner2DbegIdx];
+        result = blocksLoc2D[inner2DbegIdx];
+        const t_array_size minIdx = scanMinIdx(begIdx, ((begCompIdx + 1) << kExp) - 1, minVal, true);
+        if (minIdx != MAX_T_ARRAYSIZE)
+            result = minIdx;
+    }
+
+#ifndef WORST_CASE
+    t_array_size tempLoc;
+    if (rightMin < minVal)
+        if ((tempLoc = blocksLoc2D[endShiftCompIdx + e * blocksCount]) <= endIdx) {
+            return tempLoc;
+        } else
+#endif
+        {
+            const t_array_size inner2DEndShiftIdx = (endCompIdx - (step >> (step == kBlockCount)) + ((e - (step == kBlockCount)) * blocksCount));
+            t_value tempVal = blocksVal2D[inner2DEndShiftIdx];
+            if (tempVal < minVal) {
+                minVal = tempVal;
+                result = blocksLoc2D[inner2DEndShiftIdx];
+            }
+            const t_array_size minIdx = scanMinIdx(endCompIdx << kExp, endIdx, minVal, false);
+            if (minIdx != MAX_T_ARRAYSIZE)
+                return minIdx;
+        }
+
     return result;
 }
 
-inline t_array_size BbST::rawScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
+inline t_array_size BbST::rawScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx, t_value& minVal, bool smallerOrEqual) {
     t_array_size minValIdx = begIdx;
     for(t_array_size i = begIdx + 1; i <= endIdx; i++) {
         if (valuesArray[i] < valuesArray[minValIdx]) {
             minValIdx = i;
         }
     }
-    return minValIdx;
+    if (smallerOrEqual?valuesArray[minValIdx]<=minVal:valuesArray[minValIdx]<minVal) {
+        minVal = valuesArray[minValIdx];
+        return minValIdx;
+    } else
+        return MAX_T_ARRAYSIZE;
 }
 
-inline t_array_size BbST::miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
-    t_array_size result = -1;
+inline t_array_size BbST::miniScanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx, t_value& minVal, bool smallerOrEqual) {
     const t_array_size begMiniIdx = begIdx >> miniKExp;
     const t_array_size endMiniIdx = endIdx >> miniKExp;
     const t_array_size firstMiniBlockMinLoc = (begMiniIdx << miniKExp) + miniBlocksLoc[begMiniIdx];
     if (endMiniIdx == begMiniIdx) {
-        if (begIdx <= firstMiniBlockMinLoc && firstMiniBlockMinLoc <= endIdx)
-            return firstMiniBlockMinLoc;
-        return rawScanMinIdx(begIdx, endIdx);
+#ifndef WORST_CASE
+        if (begIdx <= firstMiniBlockMinLoc && firstMiniBlockMinLoc <= endIdx) {
+            if (smallerOrEqual?valuesArray[firstMiniBlockMinLoc]<=minVal:valuesArray[firstMiniBlockMinLoc]<minVal) {
+                minVal = valuesArray[firstMiniBlockMinLoc];
+                return firstMiniBlockMinLoc;
+            } else
+                return MAX_T_ARRAYSIZE;
+        }
+#endif
+        return rawScanMinIdx(begIdx, endIdx, minVal, smallerOrEqual);
     }
-    t_value minVal = MAX_T_VALUE;
+    t_array_size result = MAX_T_ARRAYSIZE;
     if (endMiniIdx - begMiniIdx > 1) {
-        for(t_array_size i = begMiniIdx + 1; i <= endMiniIdx - 1; i++) {
+        t_value innerMinVal = minVal;
+        for(t_array_size i = endMiniIdx - 1; i > begMiniIdx; i--) {
             t_array_size tempLoc = (i << miniKExp) + miniBlocksLoc[i];
             t_value tempVal = valuesArray[tempLoc];
-            if (tempVal < minVal) {
-                minVal = tempVal;
+            if (tempVal <= innerMinVal) {
+                innerMinVal = tempVal;
                 result = tempLoc;
             }
         }
+        if (innerMinVal < minVal) {
+            smallerOrEqual = true;
+            minVal = innerMinVal;
+        } else if (result != MAX_T_ARRAYSIZE && !smallerOrEqual)
+            result = MAX_T_ARRAYSIZE;
     }
 #ifndef WORST_CASE
     t_value tempVal = valuesArray[firstMiniBlockMinLoc];
-    if (tempVal <= minVal && begIdx != (begMiniIdx + 1) << miniKExp) {
+    if ((smallerOrEqual?tempVal <= minVal:tempVal < minVal) && begIdx != (begMiniIdx + 1) << miniKExp)
         if (firstMiniBlockMinLoc >= begIdx) {
+            smallerOrEqual = false;
             minVal = tempVal;
             result = firstMiniBlockMinLoc;
-        } else {
-            t_array_size minIdx = rawScanMinIdx(begIdx, ((begMiniIdx + 1) << miniKExp) - 1);
-            if (valuesArray[minIdx] <= minVal) {
-                minVal = valuesArray[minIdx];
+        } else
+#endif
+        {
+            t_array_size minIdx = rawScanMinIdx(begIdx, ((begMiniIdx + 1) << miniKExp) - 1, minVal, smallerOrEqual);
+            if (minIdx != MAX_T_ARRAYSIZE) {
+                smallerOrEqual = false;
                 result = minIdx;
             }
         }
-    }
+
+#ifndef WORST_CASE
     t_array_size lastBlockMinLoc = (endMiniIdx << miniKExp) + miniBlocksLoc[endMiniIdx];
     tempVal = valuesArray[lastBlockMinLoc];
-    if (tempVal < minVal) {
+    if (smallerOrEqual?tempVal <= minVal:tempVal < minVal)
         if (lastBlockMinLoc <= endIdx) {
-            result = lastBlockMinLoc;
-        } else {
-            t_array_size minIdx = rawScanMinIdx(endMiniIdx << miniKExp, endIdx);
-            if (valuesArray[minIdx] < minVal) {
-                result = minIdx;
+            minVal = tempVal;
+            return lastBlockMinLoc;
+        } else
+#endif
+        {
+            t_array_size minIdx = rawScanMinIdx(endMiniIdx << miniKExp, endIdx, minVal, result == MAX_T_ARRAYSIZE && smallerOrEqual);
+            if (minIdx != MAX_T_ARRAYSIZE) {
+                return minIdx;
             }
         }
-    }
-#else
-    t_array_size minIdx = rawScanMinIdx(begIdx, ((begMiniIdx + 1) << miniKExp) - 1);
-    if (valuesArray[minIdx] <= minVal) {
-        minVal = valuesArray[minIdx];
-        result = minIdx;
-    }
-    minIdx = rawScanMinIdx(endMiniIdx << miniKExp, endIdx);
-    if (valuesArray[minIdx] < minVal) {
-        result = minIdx;
-    }
-#endif
+
     return result;
 }
 
-t_array_size BbST::scanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx) {
+t_array_size BbST::scanMinIdx(const t_array_size &begIdx, const t_array_size &endIdx, t_value& minVal, bool smallerOrEqual) {
 #ifdef MINI_BLOCKS
-    return miniScanMinIdx(begIdx, endIdx);
+    return miniScanMinIdx(begIdx, endIdx, minVal, smallerOrEqual);
 #else
-    return rawScanMinIdx(begIdx, endIdx);
+    return rawScanMinIdx(begIdx, endIdx, minVal, smallerOrEqual);
 #endif
 }
 

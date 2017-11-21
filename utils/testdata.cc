@@ -77,7 +77,8 @@ void verify(const vector<t_value> &valuesArray, const vector<t_array_size> &quer
         verifyLoc[i] = minValPtr - vaPtr;
         if (resultLoc[i] != MAX_T_ARRAYSIZE && verifyLoc[i] != resultLoc[i]) {
             cout << "Error: " << i << " query (" << queries[i * 2] << ", " << queries[i * 2 + 1] << ") - expected "
-                 << verifyLoc[i] << " is " << resultLoc[i] << std::endl;
+                 << verifyLoc[i] << " is " << resultLoc[i]
+                 << " (vals:" << valuesArray[verifyLoc[i]] << " and " << valuesArray[resultLoc[i]] << ")" << std::endl;
         }
     }
 }
