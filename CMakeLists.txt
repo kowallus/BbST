@@ -54,6 +54,8 @@ set(SDSL-LITE_FILES
 
 add_executable(bbstcon ${BBSTCON_SOURCE_FILES})
 add_executable(bbst bench/bbst_test.cpp ${BBST_SOURCE_FILES})
+add_executable(bbst2 bench/bbst2_test.cpp ${BBST_SOURCE_FILES})
+target_compile_definitions(bbst2 PUBLIC "-DMINI_BLOCKS")
 add_executable(bbst_nb bench/bbst_nb_test.cpp ${BBST_SOURCE_FILES})
 add_executable(bbst2_nb bench/bbst2_nb_test.cpp ${BBST_SOURCE_FILES})
 target_compile_definitions(bbst2_nb PUBLIC "-DMINI_BLOCKS")
