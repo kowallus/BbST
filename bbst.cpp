@@ -67,14 +67,20 @@ void BbST::getBlocksMinsBase() {
     for (t_array_size i = 0; i < blocksCount - 1; i++) {
 #ifdef MINI_BLOCKS
         t_array_size miniI = i << (kExp - miniKExp);
+        blocksVal2D[i] = MAX_T_VALUE;
         for (t_array_size j = 0; j < miniBlocksInBlock; j++, miniI++) {
             auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[(miniI + 1) << miniKExp]);
             miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
+            if (*miniMinPtr < blocksVal2D[i]) {
+                blocksVal2D[i] = *miniMinPtr;
+                blocksLoc2D[i] = miniMinPtr - &valuesArray[0];
+            }
         }
-#endif
+#else
         auto minPtr = std::min_element(&valuesArray[i << kExp], &valuesArray[(i + 1) << kExp]);
         blocksVal2D[i] = *minPtr;
         blocksLoc2D[i] = minPtr - &valuesArray[0];
+#endif
     }
 #ifdef MINI_BLOCKS
     t_array_size miniI = (blocksCount - 1) << (kExp - miniKExp);
