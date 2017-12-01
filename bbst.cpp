@@ -56,6 +56,7 @@ void BbST::getBlocksMinsBase() {
 #ifdef MINI_BLOCKS
     this->miniBlocksCount = (n + miniK - 1) >> miniKExp;
     this->miniBlocksLoc = new uint8_t[miniBlocksCount];
+    t_value* miniBlocksVal= new t_value[miniBlocksCount];
     this->miniBlocksInBlock = k / miniK;
 #endif
     this->blocksCount = (n + k - 1) >> kExp;
@@ -63,37 +64,49 @@ void BbST::getBlocksMinsBase() {
     const t_array_size blocksSize = blocksCount * D;
     blocksVal2D = new t_value[blocksSize];
     blocksLoc2D = new t_array_size[blocksSize];
+
+#ifdef MINI_BLOCKS
+    #pragma omp parallel for
+    for (t_array_size miniI = 0; miniI < this->miniBlocksCount - 1; miniI++) {
+        auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[(miniI + 1) << miniKExp]);
+        miniBlocksVal[miniI] = *miniMinPtr;
+        miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
+    }
+    int delKExp = kExp - miniKExp;
     #pragma omp parallel for
     for (t_array_size i = 0; i < blocksCount - 1; i++) {
-#ifdef MINI_BLOCKS
-        t_array_size miniI = i << (kExp - miniKExp);
-        blocksVal2D[i] = MAX_T_VALUE;
-        for (t_array_size j = 0; j < miniBlocksInBlock; j++, miniI++) {
-            auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[(miniI + 1) << miniKExp]);
-            miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
-            if (*miniMinPtr < blocksVal2D[i]) {
-                blocksVal2D[i] = *miniMinPtr;
-                blocksLoc2D[i] = miniMinPtr - &valuesArray[0];
-            }
-        }
+        auto minPtr = std::min_element(&miniBlocksVal[i << delKExp], &miniBlocksVal[(i + 1) << delKExp]);
+        blocksVal2D[i] = *minPtr;
+        t_array_size miniI = minPtr - &miniBlocksVal[0];
+        blocksLoc2D[i] = (miniI << miniKExp) + miniBlocksLoc[miniI];
+    }
 #else
+    #pragma omp parallel for
+    for (t_array_size i = 0; i < blocksCount - 1; i++) {
         auto minPtr = std::min_element(&valuesArray[i << kExp], &valuesArray[(i + 1) << kExp]);
         blocksVal2D[i] = *minPtr;
         blocksLoc2D[i] = minPtr - &valuesArray[0];
-#endif
     }
+#endif
 #ifdef MINI_BLOCKS
     t_array_size miniI = (blocksCount - 1) << (kExp - miniKExp);
     for (; ((miniI + 1) << miniKExp) < n; miniI++) {
         auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[(miniI + 1) << miniKExp]);
+        miniBlocksVal[miniI] = *miniMinPtr;
         miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
     }
     auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[n]);
     miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
-#endif
+    auto minPtr = std::min_element(&miniBlocksVal[blocksCount - 1 << delKExp], &miniBlocksVal[miniBlocksCount]);
+    blocksVal2D[blocksCount - 1] = *minPtr;
+    miniI = minPtr - &miniBlocksVal[0];
+    blocksLoc2D[blocksCount - 1] = (miniI << miniKExp) + miniBlocksLoc[miniI];
+    delete miniBlocksVal;
+#else
     auto minPtr = std::min_element(&valuesArray[(blocksCount - 1) << kExp], &valuesArray[n]);
     blocksVal2D[blocksCount - 1] = *minPtr;
     blocksLoc2D[blocksCount - 1] = minPtr - &valuesArray[0];
+#endif
 }
 
 void BbST::getBlocksSparseTable() {
