@@ -260,7 +260,7 @@ inline t_array_size BbST::miniScanMinIdx(const t_array_size &begIdx, const t_arr
 #ifndef WORST_CASE
     t_array_size lastBlockMinLoc = (endMiniIdx << miniKExp) + miniBlocksLoc[endMiniIdx];
     tempVal = valuesArray[lastBlockMinLoc];
-    if (smallerOrEqual?tempVal <= minVal:tempVal < minVal)
+    if ((smallerOrEqual && result > lastBlockMinLoc)?tempVal <= minVal:tempVal < minVal)
         if (lastBlockMinLoc <= endIdx) {
             minVal = tempVal;
             return lastBlockMinLoc;
