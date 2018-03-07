@@ -52,6 +52,19 @@ set(SDSL-LITE_FILES
         includes/sdsl/rmq_succinct_sct.hpp
         includes/sdsl/rmq_support.hpp)
 
+set(LCP-ARRAY_FILES
+        sdsl/config.cpp
+        sdsl/construct_lcp.cpp
+        sdsl/construct_lcp_helper.cpp
+        sdsl/io.cpp
+        sdsl/sfstream.cpp
+        sdsl/ram_filebuf.cpp
+        sdsl/wt_helper.cpp
+        includes/sdsl/construct_lcp.hpp
+        includes/sais.c
+        includes/sais.h
+        )
+
 add_executable(bbstcon ${BBSTCON_SOURCE_FILES})
 add_executable(bbst bench/bbst_test.cpp ${BBST_SOURCE_FILES})
 add_executable(bbst2 bench/bbst2_test.cpp ${BBST_SOURCE_FILES})
@@ -103,3 +116,21 @@ target_link_libraries(bbst2-sdsl-rec_nb PUBLIC mman)
 target_compile_definitions(bbst2-sdsl-rec_nb PUBLIC "-DMINI_BLOCKS")
 target_link_libraries(cbbst2-sdsl-rec_nb PUBLIC mman)
 target_compile_definitions(cbbst2-sdsl-rec_nb PUBLIC "-DMINI_BLOCKS -DQUANTIZED")
+
+add_executable(bbst_st_dfs bench/bbst2-st_dfs_test.cpp ${BBST_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
+target_link_libraries(bbst_st_dfs PUBLIC mman)
+add_executable(bbst2_st_dfs bench/bbst2-st_dfs_test.cpp ${BBST_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
+target_link_libraries(bbst2_st_dfs PUBLIC mman)
+target_compile_definitions(bbst2_st_dfs PUBLIC "-DMINI_BLOCKS")
+add_executable(bbst-sdsl-rec_st_dfs bench/bbst2-st_dfs_test.cpp ${BBSTHT_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
+target_link_libraries(bbst-sdsl-rec_st_dfs PUBLIC mman)
+target_compile_definitions(bbst-sdsl-rec_st_dfs PUBLIC "-DSDSL_REC")
+add_executable(cbbst-sdsl-rec_st_dfs bench/bbst2-st_dfs_test.cpp ${CBBSTX_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
+target_link_libraries(cbbst-sdsl-rec_st_dfs PUBLIC mman)
+target_compile_definitions(cbbst-sdsl-rec_st_dfs PUBLIC "-DQUANTIZED -DSDSL_REC")
+add_executable(bbst2-sdsl-rec_st_dfs bench/bbst2-st_dfs_test.cpp ${BBSTHT_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
+target_link_libraries(bbst2-sdsl-rec_st_dfs PUBLIC mman)
+target_compile_definitions(bbst2-sdsl-rec_st_dfs PUBLIC "-DMINI_BLOCKS -DSDSL_REC")
+add_executable(cbbst2-sdsl-rec_st_dfs bench/bbst2-st_dfs_test.cpp ${CBBSTX_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
+target_link_libraries(cbbst2-sdsl-rec_st_dfs PUBLIC mman)
+target_compile_definitions(cbbst2-sdsl-rec_st_dfs PUBLIC "-DMINI_BLOCKS -DQUANTIZED -DSDSL_REC")
