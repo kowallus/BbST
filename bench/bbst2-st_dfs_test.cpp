@@ -279,8 +279,17 @@ int main(int argc, char**argv) {
     double dfsTime = timer.getElapsedTime();
     double nanoqcoef = 1000000000.0 / num_queries;
     double queryTime = dfsTime * nanoqcoef;
+    fstream fout(rmqName + "_st_dfs_res.txt", ios::out | ios::binary | ios::app);
 #ifdef MINI_BLOCKS
     if (verbose) cout << "query time [ns]; N; q; dataset; size [KB]; k; miniK; noOfThreads; BbST build time [s]; dfs time [s]";
+#else
+    if (verbose) cout << "query time [ns]; N; q; dataset; size [KB]; k; noOfThreads; BbST build time [s]; dfs time [s]";
+#endif
+#ifdef COUNT_2ND_RMQ
+    if (verbose) cout << "; 2nd-ary rmq query counter; log avaraged range";
+#endif
+    if (verbose) cout << std::endl;
+#ifdef MINI_BLOCKS
     cout << queryTime << "\t" << N << "\t" << num_queries << "\t" << test_file
          << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << (1 << miniKExp) << "\t" << noOfThreads
          << "\t" << buildTime << "\t" << dfsTime;
@@ -288,12 +297,6 @@ int main(int argc, char**argv) {
          << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << (1 << miniKExp) << "\t" << noOfThreads
          << "\t" << buildTime << "\t" << dfsTime;
 #else
-    fstream fout(rmqName + "_st_dfs_res.txt", ios::out | ios::binary | ios::app);
-    if (verbose) cout << "query time [ns]; N; q; dataset; size [KB]; k; noOfThreads; BbST build time [s]; dfs time [s]";
-    #ifdef COUNT_2ND_RMQ
-    if (verbose) cout << "; 2nd-ary rmq query counter; log avaraged range";
-    #endif
-    if (verbose) cout << std::endl;
     cout << queryTime << "\t" << N << "\t" << num_queries << "\t" << test_file
          << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads
          << "\t" << buildTime << "\t" << dfsTime;

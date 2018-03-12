@@ -152,6 +152,14 @@ template<typename t_qvalue, int max_qvalue> void CBbSTx<t_qvalue, max_qvalue>::p
 }
 
 template<typename t_qvalue, int max_qvalue> t_array_size CBbSTx<t_qvalue, max_qvalue>::rmq(const t_array_size &begIdx, const t_array_size &endIdx) {
+#ifdef ST_DFS_TWEAK
+#ifdef MINI_BLOCKS
+    if (endIdx - begIdx < 512)
+#else
+    if (endIdx - begIdx < 2048)
+#endif
+        return secondaryRMQ->rmq(begIdx, endIdx);
+#endif
     if (begIdx == endIdx) {
         return begIdx;
     }

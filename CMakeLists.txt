@@ -141,3 +141,10 @@ target_compile_definitions(cbbst-sdsl-rec_st_dfs_counter PUBLIC "-DCOUNT_2ND_RMQ
 add_executable(cbbst2-sdsl-rec_st_dfs_counter bench/bbst2-st_dfs_test.cpp ${CBBSTX_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
 target_link_libraries(cbbst2-sdsl-rec_st_dfs_counter PUBLIC mman)
 target_compile_definitions(cbbst2-sdsl-rec_st_dfs_counter PUBLIC "-DCOUNT_2ND_RMQ -DMINI_BLOCKS -DQUANTIZED -DSDSL_REC")
+
+add_executable(cbbst-sdsl-rec_st_dfs_tweak bench/bbst2-st_dfs_test.cpp ${CBBSTX_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
+target_link_libraries(cbbst-sdsl-rec_st_dfs_tweak PUBLIC mman)
+target_compile_definitions(cbbst-sdsl-rec_st_dfs_tweak PUBLIC "-DST_DFS_TWEAK -DQUANTIZED -DSDSL_REC")
+add_executable(cbbst2-sdsl-rec_st_dfs_tweak bench/bbst2-st_dfs_test.cpp ${CBBSTX_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
+target_link_libraries(cbbst2-sdsl-rec_st_dfs_tweak PUBLIC mman)
+target_compile_definitions(cbbst2-sdsl-rec_st_dfs_tweak PUBLIC "-DST_DFS_TWEAK -DMINI_BLOCKS -DQUANTIZED -DSDSL_REC")
