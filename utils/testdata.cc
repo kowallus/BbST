@@ -4,7 +4,7 @@ std::mt19937 randgenerator;
 
 void getRandomValues(vector<t_value> &data, const t_value modulo) {
      randgenerator.seed(randgenerator.default_seed);
-     for(long long int i = 0; i < data.size(); i++) {
+     for(t_array_size i = 0; i < data.size(); i++) {
          data[i] = randgenerator();
          if (modulo > 0)
              data[i] %= modulo;
@@ -26,6 +26,18 @@ void getPermutationOfRange(vector<t_value> &data) {
         data[a] = data[b];
         data[b] = temp;
     }
+}
+
+void getPseudoMonotonicValues(vector<t_value> &data, t_value delta, bool decreasing) {
+    t_value n = data.size();
+    randgenerator.seed(randgenerator.default_seed);
+    for(t_array_size i = 0; i < data.size(); i++) {
+        data[i] = i + (randgenerator() % (2 * delta + 1)) - delta;
+    }
+    if (decreasing)
+        for(t_array_size i = 0; i < data.size(); i++) {
+            data[i] = n - data[i];
+        }
 }
 
 void getRandomRangeQueries(vector<pair<t_array_size, t_array_size>> &queries, const t_array_size array_size, const t_array_size max_range_size) {
