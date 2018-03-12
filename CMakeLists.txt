@@ -134,3 +134,10 @@ target_compile_definitions(bbst2-sdsl-rec_st_dfs PUBLIC "-DMINI_BLOCKS -DSDSL_RE
 add_executable(cbbst2-sdsl-rec_st_dfs bench/bbst2-st_dfs_test.cpp ${CBBSTX_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
 target_link_libraries(cbbst2-sdsl-rec_st_dfs PUBLIC mman)
 target_compile_definitions(cbbst2-sdsl-rec_st_dfs PUBLIC "-DMINI_BLOCKS -DQUANTIZED -DSDSL_REC")
+
+add_executable(cbbst-sdsl-rec_st_dfs_counter bench/bbst2-st_dfs_test.cpp ${CBBSTX_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
+target_link_libraries(cbbst-sdsl-rec_st_dfs_counter PUBLIC mman)
+target_compile_definitions(cbbst-sdsl-rec_st_dfs_counter PUBLIC "-DCOUNT_2ND_RMQ -DQUANTIZED -DSDSL_REC")
+add_executable(cbbst2-sdsl-rec_st_dfs_counter bench/bbst2-st_dfs_test.cpp ${CBBSTX_SOURCE_FILES} ${SDSL-LITE_FILES} ${LCP-ARRAY_FILES} )
+target_link_libraries(cbbst2-sdsl-rec_st_dfs_counter PUBLIC mman)
+target_compile_definitions(cbbst2-sdsl-rec_st_dfs_counter PUBLIC "-DCOUNT_2ND_RMQ -DMINI_BLOCKS -DQUANTIZED -DSDSL_REC")

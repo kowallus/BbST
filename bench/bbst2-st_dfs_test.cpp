@@ -148,7 +148,6 @@ int main(int argc, char**argv) {
 #ifdef QUANTIZED
     rmqName = string("c") + rmqName;
 #endif
-    fstream fout(rmqName + "_st_dfs_res.txt", ios::out | ios::binary | ios::app);
     ChronoStopWatch timer;
     bool verbose = true;
     int kExp = 14;
@@ -242,7 +241,12 @@ int main(int argc, char**argv) {
     if (verbose) cout << "Building "<< rmqName << "... " << std::endl;
     timer.startTimer();
 #ifdef SDSL_REC
+    #ifndef COUNT_2ND_RMQ
     CompetitorRMQ rmqIdx(&B[0], N);
+    #else
+    CompetitorRMQ sndRmqIdx(&B[0], N);
+    RMQCounterDecorator rmqIdx(&sndRmqIdx);
+    #endif
     #ifdef QUANTIZED
         #ifdef MINI_BLOCKS
     CBbSTx<uint8_t, 255> solver(B, kExp, miniKExp, &rmqIdx);
@@ -276,22 +280,34 @@ int main(int argc, char**argv) {
     double nanoqcoef = 1000000000.0 / num_queries;
     double queryTime = dfsTime * nanoqcoef;
 #ifdef MINI_BLOCKS
-    if (verbose) cout << "query time [ns]; N; q; dataset; size [KB]; k; miniK; noOfThreads; BbST build time [s]; dfs time [s]" << std::endl;
+    if (verbose) cout << "query time [ns]; N; q; dataset; size [KB]; k; miniK; noOfThreads; BbST build time [s]; dfs time [s]";
     cout << queryTime << "\t" << N << "\t" << num_queries << "\t" << test_file
          << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << (1 << miniKExp) << "\t" << noOfThreads
-         << "\t" << buildTime << "\t" << dfsTime << std::endl;
+         << "\t" << buildTime << "\t" << dfsTime;
     fout << queryTime << "\t" << N << "\t" << num_queries << "\t" << test_file
          << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << (1 << miniKExp) << "\t" << noOfThreads
-         << "\t" << buildTime << "\t" << dfsTime << std::endl;
+         << "\t" << buildTime << "\t" << dfsTime;
 #else
-    if (verbose) cout << "query time [ns]; N; q; dataset; size [KB]; k; miniK; noOfThreads; BbST build time [s]; dfs time [s]" << std::endl;
+    fstream fout(rmqName + "_st_dfs_res.txt", ios::out | ios::binary | ios::app);
+    if (verbose) cout << "query time [ns]; N; q; dataset; size [KB]; k; noOfThreads; BbST build time [s]; dfs time [s]";
+    #ifdef COUNT_2ND_RMQ
+    if (verbose) cout << "; 2nd-ary rmq query counter; log avaraged range";
+    #endif
+    if (verbose) cout << std::endl;
     cout << queryTime << "\t" << N << "\t" << num_queries << "\t" << test_file
          << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads
-         << "\t" << buildTime << "\t" << dfsTime << std::endl;
+         << "\t" << buildTime << "\t" << dfsTime;
     fout << queryTime << "\t" << N << "\t" << num_queries << "\t" << test_file
          << "\t" << (solver.memUsageInBytes() / 1000) << "\t" << (1 << kExp) << "\t" << noOfThreads
-         << "\t" << buildTime << "\t" << dfsTime << std::endl;
+         << "\t" << buildTime << "\t" << dfsTime;
 #endif
+#ifdef COUNT_2ND_RMQ
+    cout << "\t" << rmqIdx.getRMQCount() << "\t" << rmqIdx.getLogAvaregedM();
+    fout << "\t" << rmqIdx.getRMQCount() << "\t" << rmqIdx.getLogAvaregedM();
+#endif
+    cout << std::endl;
+    fout << std::endl;
+
     if (verbose) cout << "The end..." << std::endl;
 
     return 0;
