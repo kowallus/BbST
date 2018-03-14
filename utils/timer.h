@@ -7,8 +7,8 @@ using namespace std;
 using namespace chrono;
 
 typedef struct {
-	high_resolution_clock::time_point start;
-	high_resolution_clock::time_point stop;
+	steady_clock::time_point start;
+	steady_clock::time_point stop;
 } stopWatch;
 
 class ChronoStopWatch {
