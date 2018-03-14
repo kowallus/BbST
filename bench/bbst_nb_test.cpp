@@ -20,8 +20,13 @@ int main(int argc, char**argv) {
     int opt; // current option
     int repeats = 1;
     t_array_size max_range = 0;
-
+#ifdef PSEUDO_MONO
+    t_value delta = 0;
+    bool decreasing = true;
+	while ((opt = getopt(argc, argv, "k:t:r:m:d:ivq?")) != -1) {
+#else
     while ((opt = getopt(argc, argv, "k:t:r:m:vq?")) != -1) {
+#endif
         switch (opt) {
             case 'q':
                 verbose = false;
@@ -61,10 +66,25 @@ int main(int argc, char**argv) {
                     exit(EXIT_FAILURE);
                 }
                 break;
+#ifdef PSEUDO_MONO
+            case 'i':
+				decreasing = false;
+				break;
+			case 'd':
+				delta = atoi(optarg);
+				break;
+
+#endif
             case '?':
             default: /* '?' */
+#ifdef PSEUDO_MONO
+                fprintf(stderr, "Usage: %s [-k block size power of 2 exponent] [-t noOfThreads] [-v] [-q] [-i] [-d delta_value] n q\n\n",
+                        argv[0]);
+				fprintf(stderr, "\n-i pseudo-increasing data");
+#else
                 fprintf(stderr, "Usage: %s [-k block size power of 2 exponent] [-t noOfThreads] [-v] [-q] n q\n\n",
                         argv[0]);
+#endif
                 fprintf(stderr, "-k [24>=k>=0] \n-t [noOfThreads>=1] \n-v verify results (extremely slow)\n-q quiet output (only parameters)\n\n");
                 exit(EXIT_FAILURE);
         }
@@ -85,10 +105,14 @@ int main(int argc, char**argv) {
 
     if (verbose) cout << "Generation of values..." << std::endl;
     vector<t_value> valuesArray(n);
+#ifdef PSEUDO_MONO
+    getPseudoMonotonicValues(valuesArray, delta, decreasing);
+#else
 #ifdef RANDOM_DATA
     getRandomValues(valuesArray, MAX_T_VALUE / 4);
 #else
     getPermutationOfRange(valuesArray);
+#endif
 #endif
 
     if (verbose) cout << "Generation of queries..." << std::endl;

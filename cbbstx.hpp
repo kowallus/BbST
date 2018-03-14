@@ -64,21 +64,32 @@ template<typename t_qvalue, int max_qvalue> void CBbSTx<t_qvalue, max_qvalue>::p
     vector<t_array_size> tempBlocksLoc(blocksCount);
     this->baseBlocksValLoc2D = new uint8_t[baseBlocksSize * VALUE_AND_LOCATION_BYTES];
     this->blocksRelativeLoc2D = new uint8_t[relativeBlocksSize];
+#ifdef MINI_BLOCKS
+#pragma omp parallel for
+    for (t_array_size miniI = 0; miniI < this->miniBlocksCount - 1; miniI++) {
+        auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[(miniI + 1) << miniKExp]);
+        miniBlocksVal[miniI] = *miniMinPtr;
+        miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
+    }
+    int delKExp = kExp - miniKExp;
 #pragma omp parallel for
     for (t_array_size i = 0; i < blocksCount - 1; i++) {
-#ifdef MINI_BLOCKS
-        t_array_size miniI = i << (kExp - miniKExp);
-        for (t_array_size j = 0; j < miniBlocksInBlock; j++, miniI++) {
-            auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &valuesArray[(miniI + 1) << miniKExp]);
-            miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
-            miniBlocksVal[miniI] = *miniMinPtr;
-        }
-#endif
+        auto minPtr = std::min_element(&miniBlocksVal[i << delKExp], &miniBlocksVal[(i + 1) << delKExp]);
+        t_value* valLocPtr = (t_value*) (baseBlocksValLoc2D + VALUE_AND_LOCATION_BYTES * i);
+        *valLocPtr++ = tempBlocksVal[i] = *minPtr;
+        t_array_size miniI = minPtr - &miniBlocksVal[0];
+        *(t_array_size*) valLocPtr = tempBlocksLoc[i] = (miniI << miniKExp) + miniBlocksLoc[miniI];
+    }
+#else
+    #pragma omp parallel for
+    for (t_array_size i = 0; i < blocksCount - 1; i++) {
         auto minPtr = std::min_element(&valuesArray[i << kExp], &valuesArray[(i + 1) << kExp]);
         t_value* valLocPtr = (t_value*) (baseBlocksValLoc2D + VALUE_AND_LOCATION_BYTES * i);
         *valLocPtr++ = tempBlocksVal[i] = *minPtr;
         *(t_array_size*) valLocPtr = tempBlocksLoc[i] = minPtr - &valuesArray[0];
     }
+#endif
+
 #ifdef MINI_BLOCKS
     t_array_size miniI = (blocksCount - 1) << (kExp - miniKExp);
     for (; ((miniI + 1) << miniKExp) < valuesArray.size(); miniI++) {
@@ -89,11 +100,17 @@ template<typename t_qvalue, int max_qvalue> void CBbSTx<t_qvalue, max_qvalue>::p
     auto miniMinPtr = std::min_element(&valuesArray[miniI << miniKExp], &(*valuesArray.end()));
     miniBlocksLoc[miniI] = miniMinPtr - &valuesArray[miniI << miniKExp];
     miniBlocksVal[miniI] = *miniMinPtr;
-#endif
+    auto minPtr = std::min_element(&miniBlocksVal[blocksCount - 1 << delKExp], &miniBlocksVal[miniBlocksCount]);
+    t_value* valLocPtr = (t_value*) (baseBlocksValLoc2D + VALUE_AND_LOCATION_BYTES * (blocksCount - 1));
+    *valLocPtr++ = tempBlocksVal[blocksCount - 1] = *minPtr;
+    miniI = minPtr - &miniBlocksVal[0];
+    *(t_array_size*) valLocPtr = tempBlocksLoc[blocksCount - 1] = (miniI << miniKExp) + miniBlocksLoc[miniI];
+#else
     auto minPtr = std::min_element(&valuesArray[(blocksCount - 1) << kExp], &(*valuesArray.end()));
     t_value* valLocPtr = (t_value*) (baseBlocksValLoc2D + VALUE_AND_LOCATION_BYTES * (blocksCount - 1));
     *valLocPtr++ = tempBlocksVal[blocksCount - 1] = *minPtr;
     *(t_array_size*) valLocPtr = tempBlocksLoc[blocksCount - 1] = minPtr - &valuesArray[0];
+#endif
 #ifdef MINI_BLOCKS
     minMinVal = miniBlocksVal[0];
     maxMinVal = miniBlocksVal[0];
