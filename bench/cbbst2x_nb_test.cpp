@@ -114,6 +114,7 @@ int main(int argc, char**argv) {
     vector<t_array_size> queries = flattenQueries(queriesPairs, q);
     t_array_size* resultLoc = new t_array_size[queries.size() / 2];
 
+    omp_set_num_threads(noOfThreads);
     if (verbose) cout << "Building cBbST2... " << std::endl;
     timer.startTimer();
     RMQCounter rmqCounter;
@@ -122,7 +123,6 @@ int main(int argc, char**argv) {
     double buildTime = timer.getElapsedTime();
     if (verbose) cout << "Solving... " << std::endl;
 
-    omp_set_num_threads(noOfThreads);
     vector<double> times;
     for(int i = 0; i < repeats; i++) {
         cleanCache();
