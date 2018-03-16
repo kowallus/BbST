@@ -21,7 +21,11 @@
 #ifdef SDSL_REC
 class CompetitorRMQ: public RMQAPI {
 private:
+#ifdef SDSL_REC_NEW
+    typedef sdsl::rmq_succinct_rec_new<true,1024,128,0> rmqStruct;
+#else
     typedef sdsl::rmq_succinct_rec<> rmqStruct;
+#endif
     rmqStruct *rmqImpl;
 public:
 
