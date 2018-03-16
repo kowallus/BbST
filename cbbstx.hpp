@@ -173,7 +173,7 @@ template<typename t_qvalue, int max_qvalue> t_array_size CBbSTx<t_qvalue, max_qv
 #ifdef MINI_BLOCKS
     if (endIdx - begIdx < 512)
 #else
-    if (endIdx - begIdx < 2048)
+    if (endIdx - begIdx < 1024)
 #endif
         return secondaryRMQ->rmq(begIdx, endIdx);
 #endif
