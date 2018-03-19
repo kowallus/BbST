@@ -6,6 +6,7 @@
 #include "bits/stdc++.h"
 
 #define RANDOM_DATA
+//#define SDSL_REC_NEW
 
 #define MAX_T_VALUE INT32_MAX
 #define MAX_T_ARRAYSIZE UINT32_MAX
