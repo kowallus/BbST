@@ -19,6 +19,8 @@
 #include <omp.h>
 
 #ifdef SDSL_REC
+typedef sdsl::int_vector<32> int_vector_32;
+
 class CompetitorRMQ: public RMQAPI {
 private:
 #ifdef SDSL_REC_NEW
@@ -29,12 +31,7 @@ private:
     rmqStruct *rmqImpl;
 public:
 
-    CompetitorRMQ(const t_value* valuesArray, const t_array_size n) {
-        typedef sdsl::int_vector<32> int_vector;
-        int_vector intVector(n);
-        for (t_array_size i = 0; i < n; i++) {
-            intVector[i] = (uint32_t)((int64_t) valuesArray[i]) - INT32_MIN;
-        }
+    CompetitorRMQ(int_vector_32 intVector, const t_array_size n) {
         rmqImpl = new rmqStruct(&intVector);
     }
 
@@ -242,13 +239,17 @@ int main(int argc, char**argv) {
     for(size_t i = 0; i < N; ++i) {
         B[i] = lcp[i];
     }
+    int_vector_32 intVector(N);
+    for (t_array_size i = 0; i < N; i++) {
+        intVector[i] = (uint32_t)((int64_t) B[i]) - INT32_MIN;
+    }
     if (verbose) cout << "Building "<< rmqName << "... " << std::endl;
     timer.startTimer();
 #ifdef SDSL_REC
     #ifndef COUNT_2ND_RMQ
-    CompetitorRMQ rmqIdx(&B[0], N);
+    CompetitorRMQ rmqIdx(intVector, N);
     #else
-    CompetitorRMQ sndRmqIdx(&B[0], N);
+    CompetitorRMQ sndRmqIdx(intVector, N);
     RMQCounterDecorator rmqIdx(&sndRmqIdx);
     #endif
     #ifdef QUANTIZED
